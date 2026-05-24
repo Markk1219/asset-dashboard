@@ -219,6 +219,7 @@
       <p>您的投資組合即時狀況</p>
     </div>
     <div class="header-actions">
+      <button class="btn" id="refresh-btn" onclick="manualRefresh()" title="重新整理股價">↻ 更新</button>
       <button class="btn" onclick="openLedgerModal()">📒 帳本</button>
       <button class="btn active" id="currency-btn" onclick="toggleCurrency()">TWD</button>
     </div>
@@ -1713,6 +1714,15 @@ function toggleHoldingCurrency(type) {
   if (btn) { btn.textContent = cur; btn.classList.toggle('active', cur === 'TWD'); }
   if (badge) badge.textContent = cur;
   renderHoldings(null);
+}
+
+async function manualRefresh() {
+  const btn = document.getElementById('refresh-btn');
+  btn.textContent = '↻ 更新中…';
+  btn.disabled = true;
+  await Promise.all([refreshUSPrices(), refreshIndices()]);
+  btn.textContent = '↻ 更新';
+  btn.disabled = false;
 }
 
 function toggleCurrency() {
