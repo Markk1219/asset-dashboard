@@ -2167,7 +2167,10 @@ function setAsset(asset, btn) {
 // 抓股價（透過本機 proxy server）
 async function fetchUSPrice(symbol) {
   try {
-    const res = await fetch(`http://localhost:3100/${symbol}`);
+    const PROXY = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+      ? 'http://localhost:3100'
+      : 'https://asset-proxy.onrender.com';
+    const res = await fetch(`${PROXY}/${symbol}`);
     const data = await res.json();
     const meta = data.chart.result[0].meta;
     const isTW = symbol.endsWith('.TW');
