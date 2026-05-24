@@ -201,6 +201,10 @@
   <div class="sidebar-footer">
     <div id="rate-status">匯率載入中...</div>
     <div id="last-update" style="margin-top:4px"></div>
+    <div style="margin-top:8px;display:flex;align-items:center;justify-content:space-between">
+      <span id="sync-status" style="font-size:11px;color:#3dd68c">☁️ 同步中…</span>
+      <button onclick="syncSave()" style="background:none;border:1px solid #2e3342;border-radius:4px;color:#4a5568;font-size:10px;padding:2px 6px;cursor:pointer" title="手動同步">↑↓</button>
+    </div>
   </div>
 </div>
 
@@ -1534,8 +1538,93 @@ const STORAGE_KEY = 'dashboard_v1';
 const LEDGER_KEY = 'dashboard_ledger_v1';
 let transactions = [];
 
+// ── 雲端同步（Google Apps Script）─────────────────────────────────
+const GAS_URL = 'https://script.google.com/macros/s/AKfycbxuxE8rFUJVATcbAxUuSEDvGCXLgoi3KpN1UEzRFUofYm9uWJ8fDbNvesAxI7L92TDlOw/exec';
+const SHEET_ID_KEY = 'dashboard_sheet_id';
+let _syncStatus = 'idle'; // idle | saving | loading | error
+
+function setSyncStatus(status, msg) {
+  _syncStatus = status;
+  const el = document.getElementById('sync-status');
+  if (!el) return;
+  const map = { idle: '☁️ 已同步', saving: '⏫ 儲存中…', loading: '⏬ 載入中…', error: '⚠️ 同步失敗' };
+  el.textContent = map[status] || msg || '';
+  el.style.color = status === 'error' ? '#f56565' : status === 'idle' ? '#3dd68c' : '#f59e0b';
+}
+
+function buildSyncPayload() {
+  return JSON.stringify({
+    storage: {
+      cashTWD: RAW.summary.cashTWD,
+      cashUSD: RAW.summary.cashUSD,
+      loan: RAW.summary.loan,
+      twHoldings: RAW.twHoldings.filter(h => !h.isTotal).map(h => ({
+        code: h.code, name: h.name, shares: h.shares, avgPrice: h.avgPrice,
+        ...(h.leverage && h.leverage !== 1 ? { leverage: h.leverage } : {})
+      })),
+      usHoldings: RAW.usHoldings.filter(h => !h.isTotal).map(h => ({
+        code: h.code, name: h.name, shares: h.shares, avgPrice: h.avgPrice,
+        ...(h.leverage && h.leverage !== 1 ? { leverage: h.leverage } : {})
+      })),
+      cryptoHoldings: RAW.cryptoHoldings.filter(h => !h.isTotal).map(h => ({
+        code: h.code, name: h.name, shares: h.shares, avgPrice: h.avgPrice
+      })),
+    },
+    transactions,
+    debts,
+  });
+}
+
+async function syncSave() {
+  setSyncStatus('saving');
+  try {
+    const sheetId = localStorage.getItem(SHEET_ID_KEY) || '';
+    const body = JSON.stringify({ id: sheetId, data: buildSyncPayload() });
+    const res = await fetch(GAS_URL, { method: 'POST', body });
+    const json = await res.json();
+    if (json.id) localStorage.setItem(SHEET_ID_KEY, json.id);
+    setSyncStatus('idle');
+  } catch(e) {
+    setSyncStatus('error');
+  }
+}
+
+async function syncLoad() {
+  const sheetId = localStorage.getItem(SHEET_ID_KEY);
+  if (!sheetId) return false;
+  setSyncStatus('loading');
+  try {
+    const res = await fetch(`${GAS_URL}?id=${sheetId}`);
+    const text = await res.text();
+    if (!text || text === '{}') { setSyncStatus('idle'); return false; }
+    const d = JSON.parse(text);
+    // 還原 storage
+    if (d.storage) {
+      const s = d.storage;
+      if (s.cashTWD != null) RAW.summary.cashTWD = s.cashTWD;
+      if (s.cashUSD != null) RAW.summary.cashUSD = s.cashUSD;
+      if (s.loan != null) RAW.summary.loan = s.loan;
+      const toHoldings = arr => [
+        ...arr.map(h => ({ ...h, price: null, pnl: 0, pnlPct: 0 })),
+        { code: '總和', shares: null, avgPrice: null, price: null, pnl: 0, pnlPct: 0, isTotal: true }
+      ];
+      if (s.twHoldings?.length)     RAW.twHoldings     = toHoldings(s.twHoldings);
+      if (s.usHoldings?.length)     RAW.usHoldings     = toHoldings(s.usHoldings);
+      if (s.cryptoHoldings?.length) RAW.cryptoHoldings = toHoldings(s.cryptoHoldings);
+    }
+    if (Array.isArray(d.transactions)) transactions = d.transactions;
+    if (Array.isArray(d.debts)) debts = d.debts;
+    setSyncStatus('idle');
+    return true;
+  } catch(e) {
+    setSyncStatus('error');
+    return false;
+  }
+}
+
 function saveLedger() {
   localStorage.setItem(LEDGER_KEY, JSON.stringify(transactions));
+  syncSave();
 }
 
 function loadLedger() {
@@ -1563,6 +1652,7 @@ function saveStorage() {
     })),
   };
   localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
+  syncSave();
 }
 
 function loadStorage() {
@@ -2941,10 +3031,9 @@ function renderDebtPage() {
   }).join('');
 }
 
-// 初始化：先從 localStorage 載入，再 recalc/render
+// 初始化：先從 localStorage 載入，再嘗試從雲端同步
 loadLedger();
 loadDebts();
-// 版本戳記：更新持倉時調高此數字，強制覆蓋舊 localStorage
 const DATA_VERSION = 4;
 if (parseInt(localStorage.getItem('dashboard_data_version') || '0') < DATA_VERSION) {
   localStorage.removeItem(STORAGE_KEY);
@@ -2959,6 +3048,16 @@ buildChart('1y', 'all');
 refreshUSPrices();
 refreshIndices();
 setInterval(() => { refreshUSPrices(); refreshIndices(); }, 5 * 60 * 1000);
+
+// 從雲端載入（非同步，載入後重新 render）
+(async () => {
+  const loaded = await syncLoad();
+  if (loaded) {
+    recalcSummary();
+    renderAll();
+    renderDebtPage && renderDebtPage();
+  }
+})();
 </script>
 </body>
 </html>
