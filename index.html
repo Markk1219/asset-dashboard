@@ -295,7 +295,7 @@
     </div>
     <!-- 圓餅圖 card -->
     <div class="chart-section chart-pie">
-      <div class="chart-title" style="margin-bottom:16px;">資產比重</div>
+      <div class="chart-title" style="margin-bottom:16px;">資產比重 <span style="font-size:11px;color:#4a5568;font-weight:400">點擊板塊查看個股</span></div>
       <div style="display:flex;align-items:center;justify-content:center;gap:24px;flex:1;min-height:220px;">
         <div style="position:relative;width:220px;height:220px;flex-shrink:0;">
           <canvas id="pieChart"></canvas>
@@ -2488,20 +2488,41 @@ function recalcSummary() {
 }
 
 let pieChart;
-function renderPieChart() {
-  const tw    = RAW.summary.twStock   || 0;
-  const us    = RAW.summary.usStock   || 0;
-  const cr    = RAW.summary.crypto    || 0;
-  const cash  = Math.round(totalCashTWD());
-  const total = tw + us + cr + cash;
-  if (total <= 0) return;
+let _pieDrillMode = null; // null=總覽, 'tw'/'us'/'crypto'
 
-  const labels = ['台股', '美股', '加密', '現金'];
-  const values = [tw, us, cr, cash];
-  const colors = ['#4a9eff', '#f6c90e', '#a78bfa', '#34d399'];
-
+function renderPieChart(drillType) {
+  _pieDrillMode = drillType || null;
   const canvas = document.getElementById('pieChart');
   if (!canvas) return;
+
+  let labels, values, colors, total;
+
+  if (!_pieDrillMode) {
+    // 總覽模式
+    const tw   = RAW.summary.twStock || 0;
+    const us   = RAW.summary.usStock || 0;
+    const cr   = RAW.summary.crypto  || 0;
+    const cash = Math.round(totalCashTWD());
+    total  = tw + us + cr + cash;
+    if (total <= 0) return;
+    labels = ['台股', '美股', '加密', '現金'];
+    values = [tw, us, cr, cash];
+    colors = ['#f6c90e', '#4a9eff', '#a78bfa', '#34d399'];
+  } else {
+    // Drill-down 模式：顯示該板塊個股
+    const isTW = _pieDrillMode === 'tw';
+    const data = _pieDrillMode === 'tw' ? RAW.twHoldings
+               : _pieDrillMode === 'us' ? RAW.usHoldings
+               : RAW.cryptoHoldings;
+    const rows = data.filter(h => !h.isTotal && h.price != null);
+    if (!rows.length) return;
+    total  = rows.reduce((s, h) => s + h.price * h.shares * (isTW ? 1 : usdtwd), 0);
+    if (total <= 0) return;
+    labels = rows.map(h => h.name ? `${h.code} ${h.name}` : h.code);
+    values = rows.map(h => h.price * h.shares * (isTW ? 1 : usdtwd));
+    const palette = ['#4a9eff','#f6c90e','#a78bfa','#34d399','#f87171','#fb923c','#60a5fa','#a3e635','#e879f9','#2dd4bf'];
+    colors = rows.map((_, i) => palette[i % palette.length]);
+  }
 
   if (pieChart) pieChart.destroy();
   pieChart = new Chart(canvas.getContext('2d'), {
@@ -2514,6 +2535,14 @@ function renderPieChart() {
       responsive: true,
       maintainAspectRatio: false,
       cutout: '62%',
+      onClick: (e, elements) => {
+        if (_pieDrillMode) return; // 已在 drill-down，不再往下
+        if (!elements.length) return;
+        const idx = elements[0].index;
+        const typeMap = { 0: 'tw', 1: 'us', 2: 'crypto', 3: null };
+        const t = typeMap[idx];
+        if (t) renderPieChart(t);
+      },
       plugins: {
         legend: { display: false },
         tooltip: {
@@ -2531,9 +2560,16 @@ function renderPieChart() {
 
   const legendEl = document.getElementById('pie-legend');
   if (legendEl) {
-    legendEl.innerHTML = labels.map((l, i) => {
+    const backBtn = _pieDrillMode
+      ? `<div style="margin-bottom:8px">
+           <button onclick="renderPieChart(null)" style="background:none;border:1px solid #2e3342;border-radius:5px;color:#4a9eff;font-size:11px;padding:3px 10px;cursor:pointer">← 返回總覽</button>
+         </div>`
+      : '';
+    legendEl.innerHTML = backBtn + labels.map((l, i) => {
       const pct = (values[i] / total * 100).toFixed(1);
-      return `<div class="pie-legend-item">
+      const clickable = !_pieDrillMode && i < 3
+        ? `style="cursor:pointer" onclick="renderPieChart('${['tw','us','crypto'][i]}')" title="點擊查看個股"` : '';
+      return `<div class="pie-legend-item" ${clickable}>
         <span class="pie-legend-dot" style="background:${colors[i]}"></span>
         <span class="pie-legend-label">${l}</span>
         <span class="pie-legend-pct">${pct}%</span>
