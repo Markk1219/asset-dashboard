@@ -118,6 +118,9 @@
   .add-holding-btn { background: none; border: 1px dashed #2e3342; border-radius: 8px; padding: 8px 14px; font-size: 13px; color: #4a5568; cursor: pointer; margin-bottom: 14px; width: 100%; transition: all 0.15s; }
   .add-holding-btn:hover { border-color: #4a9eff; color: #4a9eff; }
 
+  /* 負債摘要卡片（桌面 4 欄） */
+  .debt-cards { grid-template-columns: repeat(4, 1fr); }
+
   /* 趨勢圖 + 圓餅圖 row（桌面） */
   .charts-row { display: flex; gap: 14px; margin-bottom: 20px; }
   .chart-trend { flex: 6; margin-bottom: 0; }
@@ -186,7 +189,7 @@
     #ledger-modal .modal { width: calc(100vw - 32px) !important; }
 
     /* 負債頁摘要卡片：2欄 */
-    #page-debt .cards { grid-template-columns: 1fr 1fr; }
+    .debt-cards { grid-template-columns: 1fr 1fr; }
   }
 </style>
 </head>
@@ -606,7 +609,7 @@
   </div>
 
   <!-- 摘要卡片 -->
-  <div class="cards" style="grid-template-columns:repeat(4,1fr);margin-bottom:20px;">
+  <div class="cards debt-cards" style="margin-bottom:20px;">
     <div class="card">
       <div class="card-label">剩餘本金</div>
       <div class="card-value negative" id="debt-total">—</div>
@@ -626,8 +629,8 @@
   </div>
 
   <!-- 貸款列表 -->
-  <div class="chart-section">
-    <table style="width:100%;border-collapse:collapse;">
+  <div class="chart-section" style="overflow-x:auto;">
+    <table style="width:100%;border-collapse:collapse;min-width:700px;">
       <thead>
         <tr style="border-bottom:1px solid #252830;">
           <th style="text-align:left;padding:12px 16px;font-size:13px;color:#7a8499;font-weight:600;">名稱</th>
