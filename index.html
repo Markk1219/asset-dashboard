@@ -206,7 +206,10 @@
     <div id="last-update" style="margin-top:4px"></div>
     <div style="margin-top:8px;display:flex;align-items:center;justify-content:space-between">
       <span id="sync-status" style="font-size:11px;color:#3dd68c">☁️ 同步中…</span>
-      <button onclick="syncSave()" style="background:none;border:1px solid #2e3342;border-radius:4px;color:#4a5568;font-size:10px;padding:2px 6px;cursor:pointer" title="手動同步">↑↓</button>
+      <div style="display:flex;gap:4px">
+        <button onclick="syncSave()" style="background:none;border:1px solid #2e3342;border-radius:4px;color:#4a5568;font-size:10px;padding:2px 6px;cursor:pointer" title="手動同步">↑↓</button>
+        <button onclick="copyPhoneLink()" style="background:none;border:1px solid #2e3342;border-radius:4px;color:#4a5568;font-size:10px;padding:2px 6px;cursor:pointer" title="複製手機連結">📱</button>
+      </div>
     </div>
   </div>
 </div>
@@ -1722,6 +1725,13 @@ function toggleHoldingCurrency(type) {
   renderHoldings(null);
 }
 
+function copyPhoneLink() {
+  const sheetId = localStorage.getItem(SHEET_ID_KEY);
+  if (!sheetId) { alert('尚未同步，請先點 ↑↓ 同步一次'); return; }
+  const url = `${location.origin}${location.pathname}?sid=${sheetId}`;
+  navigator.clipboard.writeText(url).then(() => alert('已複製！傳給手機開一次即可永久同步'));
+}
+
 async function manualRefresh() {
   const btn = document.getElementById('refresh-btn');
   btn.textContent = '↻ 更新中…';
@@ -3121,6 +3131,10 @@ buildChart('1y', 'all');
 refreshUSPrices();
 refreshIndices();
 setInterval(() => { refreshUSPrices(); refreshIndices(); }, 5 * 60 * 1000);
+
+// 從 URL 參數帶入 Sheet ID（讓手機第一次開也能同步）
+const _urlSheetId = new URLSearchParams(window.location.search).get('sid');
+if (_urlSheetId) localStorage.setItem(SHEET_ID_KEY, _urlSheetId);
 
 // 從雲端載入（非同步，載入後重新 render）
 (async () => {
