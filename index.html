@@ -2509,7 +2509,7 @@ function renderPieChart(drillType) {
     values = [tw, us, cr, cash];
     colors = ['#f6c90e', '#4a9eff', '#a78bfa', '#34d399'];
   } else {
-    // Drill-down 模式：顯示該板塊個股
+    // Drill-down 模式：顯示該板塊個股，同色系漸層
     const isTW = _pieDrillMode === 'tw';
     const data = _pieDrillMode === 'tw' ? RAW.twHoldings
                : _pieDrillMode === 'us' ? RAW.usHoldings
@@ -2518,9 +2518,9 @@ function renderPieChart(drillType) {
     if (!rows.length) return;
     total  = rows.reduce((s, h) => s + h.price * h.shares * (isTW ? 1 : usdtwd), 0);
     if (total <= 0) return;
-    labels = rows.map(h => h.name ? `${h.code} ${h.name}` : h.code);
+    labels = rows.map(h => h.code); // 只顯示代號
     values = rows.map(h => h.price * h.shares * (isTW ? 1 : usdtwd));
-    const palette = ['#4a9eff','#f6c90e','#a78bfa','#34d399','#f87171','#fb923c','#60a5fa','#a3e635','#e879f9','#2dd4bf'];
+    const palette = ['#4a9eff','#34d399','#f6c90e','#f87171','#a78bfa','#fb923c','#2dd4bf','#e879f9','#60a5fa','#a3e635'];
     colors = rows.map((_, i) => palette[i % palette.length]);
   }
 
@@ -2565,15 +2565,32 @@ function renderPieChart(drillType) {
            <button onclick="renderPieChart(null)" style="background:none;border:1px solid #2e3342;border-radius:5px;color:#4a9eff;font-size:11px;padding:3px 10px;cursor:pointer">← 返回總覽</button>
          </div>`
       : '';
+    // drill-down 時取對應 rows 的全名做 tooltip
+    const drillRows = _pieDrillMode
+      ? (_pieDrillMode === 'tw' ? RAW.twHoldings : _pieDrillMode === 'us' ? RAW.usHoldings : RAW.cryptoHoldings)
+          .filter(h => !h.isTotal && h.price != null)
+      : [];
+
     legendEl.innerHTML = backBtn + labels.map((l, i) => {
       const pct = (values[i] / total * 100).toFixed(1);
-      const clickable = !_pieDrillMode && i < 3
-        ? `style="cursor:pointer" onclick="renderPieChart('${['tw','us','crypto'][i]}')" title="點擊查看個股"` : '';
-      return `<div class="pie-legend-item" ${clickable}>
-        <span class="pie-legend-dot" style="background:${colors[i]}"></span>
-        <span class="pie-legend-label">${l}</span>
-        <span class="pie-legend-pct">${pct}%</span>
-      </div>`;
+      if (!_pieDrillMode) {
+        // 總覽：可點擊 drill-down
+        const clickable = i < 3
+          ? `style="cursor:pointer" onclick="renderPieChart('${['tw','us','crypto'][i]}')" title="點擊查看個股"` : '';
+        return `<div class="pie-legend-item" ${clickable}>
+          <span class="pie-legend-dot" style="background:${colors[i]}"></span>
+          <span class="pie-legend-label">${l}</span>
+          <span class="pie-legend-pct">${pct}%</span>
+        </div>`;
+      } else {
+        // drill-down：代號 + % ，hover 顯示全名
+        const fullName = drillRows[i]?.name || '';
+        return `<div class="pie-legend-item" title="${fullName}">
+          <span class="pie-legend-dot" style="background:${colors[i]}"></span>
+          <span class="pie-legend-label" style="font-size:11px;font-weight:600">${l}</span>
+          <span class="pie-legend-pct">${pct}%</span>
+        </div>`;
+      }
     }).join('');
   }
 }
