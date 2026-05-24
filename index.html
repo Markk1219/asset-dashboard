@@ -1556,6 +1556,12 @@ function setSyncStatus(status, msg) {
   el.style.color = status === 'error' ? '#f56565' : status === 'idle' ? '#3dd68c' : '#f59e0b';
 }
 
+let _syncDebounceTimer = null;
+function debouncedSyncSave() {
+  clearTimeout(_syncDebounceTimer);
+  _syncDebounceTimer = setTimeout(() => syncSave(), 2000);
+}
+
 function buildSyncPayload() {
   return JSON.stringify({
     storage: {
@@ -1628,7 +1634,7 @@ async function syncLoad() {
 
 function saveLedger() {
   localStorage.setItem(LEDGER_KEY, JSON.stringify(transactions));
-  syncSave();
+  debouncedSyncSave();
 }
 
 function loadLedger() {
@@ -1656,7 +1662,7 @@ function saveStorage() {
     })),
   };
   localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
-  syncSave();
+  debouncedSyncSave();
 }
 
 function loadStorage() {
@@ -2918,6 +2924,7 @@ function loadDebts() {
 
 function saveDebts() {
   localStorage.setItem(DEBT_KEY, JSON.stringify(debts));
+  debouncedSyncSave();
 }
 
 let editDebtId = null;
