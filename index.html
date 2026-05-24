@@ -2484,7 +2484,7 @@ function recalcSummary() {
   RAW.summary.effectiveLeverage = netAssets > 0 ? parseFloat((effExp / netAssets * 100).toFixed(2)) : 0;
   renderCards();
   renderMonitor();
-  renderPieChart();
+  renderPieChart(_pieDrillMode);
 }
 
 let pieChart;
