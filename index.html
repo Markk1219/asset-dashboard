@@ -1,0 +1,2961 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>資產總覽</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #13161d; display: flex; min-height: 100vh; color: #e2e8f0; }
+
+  .sidebar { width: 200px; background: #1a1d26; color: #fff; padding: 24px 0; flex-shrink: 0; display: flex; flex-direction: column; border-right: 1px solid #252830; }
+  .sidebar-logo { padding: 0 20px 24px; font-size: 16px; font-weight: 700; color: #fff; border-bottom: 1px solid #252830; }
+  .sidebar-logo span { color: #4a9eff; }
+  .sidebar-nav { padding: 16px 0; flex: 1; }
+  .nav-item { padding: 10px 20px; cursor: pointer; color: #7a8499; font-size: 14px; display: flex; align-items: center; gap: 10px; transition: all 0.2s; }
+  .nav-item:hover { color: #e2e8f0; background: #22262f; }
+  .nav-item.active { color: #4a9eff; background: rgba(74,158,255,0.08); border-left: 3px solid #4a9eff; }
+  .sidebar-footer { padding: 16px 20px; border-top: 1px solid #252830; font-size: 11px; color: #4a5568; line-height: 1.6; }
+
+  .main { flex: 1; padding: 28px 32px; overflow-y: auto; }
+  .page-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 24px; }
+  .page-header h1 { font-size: 22px; font-weight: 700; color: #e2e8f0; }
+  .page-header p { color: #5a6780; font-size: 13px; margin-top: 4px; }
+  .header-actions { display: flex; gap: 8px; align-items: center; }
+  .btn { padding: 6px 14px; border-radius: 6px; border: 1px solid #2e3342; background: #1e2230; cursor: pointer; font-size: 13px; font-weight: 500; color: #9aa3b2; transition: all 0.15s; min-width: 56px; text-align: center; }
+  .btn:hover { background: #252b3a; color: #e2e8f0; }
+  .btn.active { background: #1a3a5c; color: #4a9eff; border-color: #4a9eff; }
+
+  .cards { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 20px; }
+  .card { background: #1a1d26; border-radius: 10px; padding: 18px 20px; border: 1px solid #252830; }
+  .card-label { font-size: 13px; color: #7a8499; margin-bottom: 10px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.04em; }
+  .card-value { font-size: 28px; font-weight: 700; color: #e2e8f0; }
+  .card-value.positive { color: #3dd68c; }
+  .card-value.negative { color: #f56565; }
+  .card-sub { font-size: 14px; color: #7a8499; margin-top: 8px; }
+  .platform-list { margin-top: 10px; }
+  .platform-item { display: flex; justify-content: space-between; font-size: 14px; padding: 5px 0; }
+  .platform-item .name { color: #7a8499; font-weight: 500; }
+  .platform-item .val { color: #c8d0e0; font-weight: 600; }
+
+  .chart-section { background: #1a1d26; border-radius: 10px; padding: 22px 24px; border: 1px solid #252830; margin-bottom: 20px; }
+  .chart-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+  .chart-title { font-size: 15px; font-weight: 600; color: #c8d0e0; }
+  .chart-filters { display: flex; gap: 4px; }
+  .filter-btn { padding: 4px 11px; border-radius: 5px; border: 1px solid #2e3342; background: #1e2230; cursor: pointer; font-size: 12px; color: #7a8499; transition: all 0.15s; }
+  .filter-btn:hover { color: #e2e8f0; border-color: #3e4558; }
+  .filter-btn.active { background: #1a3a5c; color: #4a9eff; border-color: #4a9eff; }
+  .chart-canvas-wrapper { position: relative; height: 280px; }
+  .pie-legend { display: flex; flex-direction: column; gap: 8px; }
+  .pie-legend-item { display: flex; align-items: center; gap: 8px; font-size: 12px; color: #7a8499; white-space: nowrap; }
+  .pie-legend-dot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
+  .pie-legend-label { flex: 1; }
+  .pie-legend-pct { color: #c8d0e0; font-weight: 600; min-width: 38px; text-align: right; }
+
+  .holdings-section { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; margin-bottom: 20px; }
+  .holding-card { background: #1a1d26; border-radius: 10px; padding: 18px 20px; border: 1px solid #252830; }
+  .holding-title { font-size: 14px; font-weight: 600; color: #c8d0e0; margin-bottom: 14px; display: flex; align-items: center; gap: 8px; }
+  .badge { padding: 2px 7px; border-radius: 4px; font-size: 10px; font-weight: 700; letter-spacing: 0.03em; }
+  .badge-tw { background: rgba(251,191,36,0.12); color: #fbbf24; border: 1px solid rgba(251,191,36,0.25); }
+  .badge-us { background: rgba(74,158,255,0.12); color: #4a9eff; border: 1px solid rgba(74,158,255,0.25); }
+  .badge-crypto { background: rgba(167,139,250,0.12); color: #a78bfa; border: 1px solid rgba(167,139,250,0.25); }
+  table { width: 100%; border-collapse: collapse; }
+  th { font-size: 10px; color: #4a5568; font-weight: 600; text-align: right; padding: 0 6px 8px; border-bottom: 1px solid #1e2230; cursor: pointer; user-select: none; white-space: nowrap; text-transform: uppercase; letter-spacing: 0.04em; }
+  th:first-child { text-align: left; }
+  th:hover { color: #4a9eff; }
+  th.sort-asc::after { content: ' ↑'; color: #4a9eff; }
+  th.sort-desc::after { content: ' ↓'; color: #4a9eff; }
+  td { font-size: 13px; padding: 8px 6px; border-bottom: 1px solid #1e2230; text-align: right; color: #9aa3b2; }
+  td:first-child { text-align: left; font-weight: 600; color: #c8d0e0; }
+  tr:last-child td { border-bottom: none; font-weight: 700; background: rgba(255,255,255,0.02); color: #c8d0e0; }
+  tr:last-child td:first-child { color: #e2e8f0; }
+  .pos { color: #3dd68c; }
+  .neg { color: #f56565; }
+
+  .monitor-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; margin-bottom: 20px; }
+  .monitor-section { background: #1a1d26; border-radius: 10px; padding: 16px 20px; border: 1px solid #252830; }
+  .monitor-title { font-size: 12px; font-weight: 600; color: #7a8499; margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.05em; }
+  .monitor-grid { display: grid; grid-template-columns: 1fr; gap: 8px; }
+  .monitor-item { text-align: center; padding: 10px 8px; background: #13161d; border-radius: 8px; border: 1px solid #1e2230; }
+  .monitor-label { font-size: 10px; color: #4a5568; margin-bottom: 4px; }
+  .monitor-value { font-size: 15px; font-weight: 700; color: #c8d0e0; }
+  .monitor-value.warn { color: #f59e0b; }
+  .monitor-value.ok { color: #3dd68c; }
+  .monitor-value.danger { color: #f56565; }
+
+  .index-section { background: #1a1d26; border-radius: 10px; padding: 16px 20px; border: 1px solid #252830; }
+  .index-title { font-size: 12px; font-weight: 600; color: #7a8499; margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.05em; }
+  .index-item { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid #1e2230; }
+  .index-item:last-child { border-bottom: none; }
+  .index-name { font-size: 13px; color: #7a8499; font-weight: 500; }
+  .index-right { text-align: right; }
+  .index-price { font-size: 14px; font-weight: 700; color: #c8d0e0; }
+  .index-change { font-size: 11px; margin-top: 2px; }
+  .index-change.pos { color: #3dd68c; }
+  .index-change.neg { color: #f56565; }
+
+  #rate-status { font-size: 11px; color: #4a5568; }
+
+  /* Modal */
+  .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.65); z-index: 100; align-items: center; justify-content: center; }
+  .modal-overlay.open { display: flex; }
+  .modal { background: #1a1d26; border-radius: 12px; padding: 28px; width: 360px; border: 1px solid #2e3342; box-shadow: 0 16px 48px rgba(0,0,0,0.5); }
+  .modal h3 { font-size: 15px; font-weight: 700; color: #e2e8f0; margin-bottom: 20px; }
+  .form-group { margin-bottom: 14px; }
+  .form-group label { display: block; font-size: 11px; color: #5a6780; margin-bottom: 5px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; }
+  .form-group input, .form-group select { width: 100%; padding: 9px 12px; border: 1px solid #2e3342; border-radius: 7px; font-size: 14px; outline: none; transition: border 0.15s; background: #13161d; color: #e2e8f0; }
+  .form-group input:focus, .form-group select:focus { border-color: #4a9eff; }
+  .modal-actions { display: flex; gap: 10px; margin-top: 20px; }
+  .modal-actions button { flex: 1; padding: 10px; border-radius: 7px; font-size: 14px; font-weight: 600; cursor: pointer; border: none; }
+  .btn-cancel { background: #252830; color: #7a8499; }
+  .btn-cancel:hover { background: #2e3342; }
+  .btn-add { background: #1a3a5c; color: #4a9eff; border: 1px solid #4a9eff; }
+  .btn-add:hover { background: #1e4470; }
+  .holding-update { font-size: 10px; color: #3a4458; font-weight: 400; margin-left: 8px; }
+  .edit-btn { background: none; border: none; color: #3a4458; cursor: pointer; font-size: 11px; padding: 2px 4px; border-radius: 4px; }
+  .edit-btn:hover { color: #4a9eff; background: rgba(74,158,255,0.1); }
+  .add-holding-btn { background: none; border: 1px dashed #2e3342; border-radius: 8px; padding: 8px 14px; font-size: 13px; color: #4a5568; cursor: pointer; margin-bottom: 14px; width: 100%; transition: all 0.15s; }
+  .add-holding-btn:hover { border-color: #4a9eff; color: #4a9eff; }
+
+  /* 趨勢圖 + 圓餅圖 row（桌面） */
+  .charts-row { display: flex; gap: 14px; margin-bottom: 20px; }
+  .chart-trend { flex: 6; margin-bottom: 0; }
+  .chart-pie { flex: 4; margin-bottom: 0; display: flex; flex-direction: column; }
+
+  /* ── 響應式：手機（≤ 768px） ── */
+  @media (max-width: 768px) {
+    body { flex-direction: column; }
+
+    /* sidebar 變底部 tab bar */
+    .sidebar {
+      width: 100%; height: 56px; flex-direction: row;
+      padding: 0; border-right: none; border-top: 1px solid #252830;
+      position: fixed; bottom: 0; left: 0; z-index: 50;
+      order: 2;
+    }
+    .sidebar-logo { display: none; }
+    .sidebar-footer { display: none; }
+    .sidebar-nav { display: flex; flex-direction: row; padding: 0; flex: 1; }
+    .nav-item {
+      flex: 1; justify-content: center; padding: 0;
+      font-size: 12px; flex-direction: column; gap: 2px;
+      border-left: none !important; border-top: 3px solid transparent;
+    }
+    .nav-item.active { border-top: 3px solid #4a9eff; border-left: none; background: rgba(74,158,255,0.06); }
+
+    /* main 加底部 padding 避免被 tab bar 遮住 */
+    .main { padding: 16px 14px 72px; order: 1; }
+
+    /* 頂部 KPI 卡片：2欄 */
+    .cards { grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 14px; }
+    .card-value { font-size: 20px; }
+    .card-label { font-size: 11px; }
+
+    /* 監控/大盤/匯率：單欄 */
+    .monitor-row { grid-template-columns: 1fr; gap: 10px; }
+
+    /* 趨勢圖 + 圓餅圖：上下疊 */
+    .charts-row { flex-direction: column; }
+    .chart-trend { flex: none; }
+    .chart-pie { flex: none; }
+    .chart-canvas-wrapper { height: 200px; }
+
+    /* 圓餅圖縮小 */
+    #pieChart { width: 160px !important; height: 160px !important; }
+
+    /* 持倉三欄 → 單欄 */
+    .holdings-section { grid-template-columns: 1fr; gap: 10px; }
+
+    /* 持倉表格：橫向捲動 */
+    .holding-card { overflow-x: auto; padding: 14px 12px; }
+    table { min-width: 480px; }
+
+    /* chart header filter 換行 */
+    .chart-header { flex-wrap: wrap; gap: 8px; }
+
+    /* modal 全寬 */
+    .modal { width: calc(100vw - 32px) !important; max-height: 85vh; overflow-y: auto; }
+
+    /* page header 縮小 */
+    .page-header h1 { font-size: 18px; }
+    .page-header p { font-size: 12px; }
+    .btn { font-size: 12px; padding: 5px 10px; }
+
+    /* 帳本 modal 全寬 */
+    #ledger-modal .modal { width: calc(100vw - 32px) !important; }
+
+    /* 負債頁摘要卡片：2欄 */
+    #page-debt .cards { grid-template-columns: 1fr 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<div class="sidebar">
+  <div class="sidebar-logo">💼 <span>資產</span>追蹤</div>
+  <nav class="sidebar-nav">
+    <div class="nav-item active" onclick="showPage('overview')">📊 資產總覽</div>
+    <div class="nav-item" onclick="showPage('debt')">💳 負債管理</div>
+  </nav>
+  <div class="sidebar-footer">
+    <div id="rate-status">匯率載入中...</div>
+    <div id="last-update" style="margin-top:4px"></div>
+  </div>
+</div>
+
+<div class="main">
+<div id="page-overview">
+  <div class="page-header">
+    <div>
+      <h1>資產總覽</h1>
+      <p>您的投資組合即時狀況</p>
+    </div>
+    <div class="header-actions">
+      <button class="btn" onclick="openLedgerModal()">📒 帳本</button>
+      <button class="btn active" id="currency-btn" onclick="toggleCurrency()">TWD</button>
+    </div>
+  </div>
+
+  <div class="cards">
+    <div class="card">
+      <div class="card-label">總資產現值</div>
+      <div class="card-value" id="total-assets">—</div>
+      <div class="card-sub" id="total-cost">投入成本：—</div>
+    </div>
+    <div class="card">
+      <div class="card-label">未實現損益</div>
+      <div class="card-value" id="unrealized-pnl">—</div>
+      <div class="card-sub" id="unrealized-pct">報酬率：—</div>
+    </div>
+    <div class="card">
+      <div class="card-label">淨資產</div>
+      <div class="card-value" id="net-assets">—</div>
+      <div style="margin-top:10px;border-top:1px solid #1e2230;padding-top:8px">
+        <div class="platform-item"><span class="name">台幣現金</span><span class="val" id="cash-twd-val" style="cursor:pointer;border-bottom:1px dashed #3a4458" onclick="editBalance('cashTWD')" title="點擊編輯">—</span></div>
+        <div class="platform-item"><span class="name">美元現金</span><span class="val" id="cash-usd-val" style="cursor:pointer;border-bottom:1px dashed #3a4458" onclick="editBalance('cashUSD')" title="點擊編輯">—</span></div>
+        <div class="platform-item"><span class="name">信貸</span><span class="val" id="loan-val" style="cursor:pointer;border-bottom:1px dashed #3a4458" onclick="editBalance('loan')" title="點擊編輯">—</span></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-label">各平台現值</div>
+      <div class="platform-list" id="platform-list">—</div>
+    </div>
+  </div>
+
+  <!-- 監控 + 大盤 + 匯率三欄 -->
+  <div class="monitor-row">
+    <div class="monitor-section">
+      <div class="monitor-title">📡 監控儀表板</div>
+      <div class="monitor-grid" id="monitor-grid"></div>
+    </div>
+    <div class="index-section">
+      <div class="index-title">📈 大盤即時<span class="holding-update" id="index-update"></span></div>
+      <div id="index-list"></div>
+    </div>
+    <div class="index-section">
+      <div class="index-title">💱 匯率<span class="holding-update" id="fx-update"></span></div>
+      <div id="fx-list"></div>
+    </div>
+  </div>
+
+  <div class="charts-row">
+    <!-- 趨勢圖 card -->
+    <div class="chart-section chart-trend">
+      <div class="chart-header" style="align-items:flex-start">
+        <div class="chart-title">資產淨值趨勢</div>
+        <div style="display:flex;flex-direction:column;gap:6px;align-items:flex-end">
+          <div class="chart-filters" id="range-filters">
+            <button class="filter-btn" onclick="setRange('1m', this)">1月</button>
+            <button class="filter-btn" onclick="setRange('3m', this)">3月</button>
+            <button class="filter-btn" onclick="setRange('6m', this)">6月</button>
+            <button class="filter-btn" onclick="setRange('ytd', this)">YTD</button>
+            <button class="filter-btn active" onclick="setRange('1y', this)">1年</button>
+            <button class="filter-btn" onclick="setRange('all', this)">全部</button>
+          </div>
+          <div class="chart-filters" id="asset-filters">
+            <button class="filter-btn active" onclick="setAsset('all', this)">合計</button>
+            <button class="filter-btn" onclick="setAsset('tw', this)">台股</button>
+            <button class="filter-btn" onclick="setAsset('us', this)">美股</button>
+            <button class="filter-btn" onclick="setAsset('crypto', this)">加密</button>
+          </div>
+        </div>
+      </div>
+      <div id="chart-legend" style="display:flex;gap:14px;flex-wrap:wrap;margin-bottom:14px;"></div>
+      <div class="chart-canvas-wrapper">
+        <canvas id="trendChart"></canvas>
+      </div>
+    </div>
+    <!-- 圓餅圖 card -->
+    <div class="chart-section chart-pie">
+      <div class="chart-title" style="margin-bottom:16px;">資產比重</div>
+      <div style="display:flex;align-items:center;justify-content:center;gap:24px;flex:1;min-height:220px;">
+        <div style="position:relative;width:220px;height:220px;flex-shrink:0;">
+          <canvas id="pieChart"></canvas>
+        </div>
+        <div class="pie-legend" id="pie-legend"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="holdings-section">
+    <div class="holding-card">
+      <div class="holding-title" style="justify-content:space-between">
+        <span>台股持倉 <span class="badge badge-tw" id="badge-tw">TWD</span><span class="holding-update" id="tw-update"></span></span>
+        <div style="display:flex;gap:6px;align-items:center">
+          <span style="font-size:11px;color:#4a5568;padding:2px 4px">TWD</span>
+          <button class="edit-btn" style="font-size:12px;padding:3px 8px;border:1px solid #2e3342;border-radius:6px" onclick="openSellModal('tw')">賣出</button>
+          <button class="edit-btn" style="font-size:12px;padding:3px 8px;border:1px solid #2e3342;border-radius:6px" onclick="openEditModal('tw')">編輯</button>
+          <button class="add-holding-btn" style="margin:0;padding:4px 10px;font-size:12px;width:auto" onclick="openModal('tw')">＋ 買入</button>
+        </div>
+      </div>
+      <table style="margin-top:10px">
+        <thead><tr>
+          <th onclick="sortHoldings('tw',0)" id="th-tw-0">代號/名稱</th>
+          <th onclick="sortHoldings('tw',1)" id="th-tw-1">股數</th>
+          <th onclick="sortHoldings('tw',2)" id="th-tw-2">均價</th>
+          <th onclick="sortHoldings('tw',3)" id="th-tw-3">現價</th>
+          <th onclick="sortHoldings('tw',4)" id="th-tw-4">現值</th>
+          <th onclick="sortHoldings('tw',5)" id="th-tw-5">損益</th>
+          <th onclick="sortHoldings('tw',6)" id="th-tw-6">損益率</th>
+        </tr></thead>
+        <tbody id="tw-holdings"></tbody>
+      </table>
+    </div>
+    <div class="holding-card">
+      <div class="holding-title" style="justify-content:space-between">
+        <span>美股持倉 <span class="badge badge-us" id="badge-us">USD</span><span class="holding-update" id="us-update"></span></span>
+        <div style="display:flex;gap:6px;align-items:center">
+          <button class="filter-btn" id="cur-btn-us" onclick="toggleHoldingCurrency('us')" style="padding:2px 8px;font-size:11px">USD</button>
+          <button class="edit-btn" style="font-size:12px;padding:3px 8px;border:1px solid #2e3342;border-radius:6px" onclick="openSellModal('us')">賣出</button>
+          <button class="edit-btn" style="font-size:12px;padding:3px 8px;border:1px solid #2e3342;border-radius:6px" onclick="openEditModal('us')">編輯</button>
+          <button class="add-holding-btn" style="margin:0;padding:4px 10px;font-size:12px;width:auto" onclick="openModal('us')">＋ 買入</button>
+        </div>
+      </div>
+      <table style="margin-top:10px">
+        <thead><tr>
+          <th onclick="sortHoldings('us',0)" id="th-us-0">代號/名稱</th>
+          <th onclick="sortHoldings('us',1)" id="th-us-1">股數</th>
+          <th onclick="sortHoldings('us',2)" id="th-us-2">均價</th>
+          <th onclick="sortHoldings('us',3)" id="th-us-3">現價</th>
+          <th onclick="sortHoldings('us',4)" id="th-us-4">現值</th>
+          <th onclick="sortHoldings('us',5)" id="th-us-5">損益</th>
+          <th onclick="sortHoldings('us',6)" id="th-us-6">損益率</th>
+        </tr></thead>
+        <tbody id="us-holdings"></tbody>
+      </table>
+    </div>
+    <div class="holding-card">
+      <div class="holding-title" style="justify-content:space-between">
+        <span>加密貨幣 <span class="badge badge-crypto" id="badge-crypto">USD</span><span class="holding-update" id="crypto-update"></span></span>
+        <div style="display:flex;gap:6px;align-items:center">
+          <button class="filter-btn" id="cur-btn-crypto" onclick="toggleHoldingCurrency('crypto')" style="padding:2px 8px;font-size:11px">USD</button>
+          <button class="edit-btn" style="font-size:12px;padding:3px 8px;border:1px solid #2e3342;border-radius:6px" onclick="openSellModal('crypto')">賣出</button>
+          <button class="edit-btn" style="font-size:12px;padding:3px 8px;border:1px solid #2e3342;border-radius:6px" onclick="openEditModal('crypto')">編輯</button>
+          <button class="add-holding-btn" style="margin:0;padding:4px 10px;font-size:12px;width:auto" onclick="openModal('crypto')">＋ 買入</button>
+        </div>
+      </div>
+      <table style="margin-top:10px">
+        <thead><tr>
+          <th onclick="sortHoldings('crypto',0)" id="th-crypto-0">代號/名稱</th>
+          <th onclick="sortHoldings('crypto',1)" id="th-crypto-1">數量</th>
+          <th onclick="sortHoldings('crypto',2)" id="th-crypto-2">均價</th>
+          <th onclick="sortHoldings('crypto',3)" id="th-crypto-3">現價</th>
+          <th onclick="sortHoldings('crypto',4)" id="th-crypto-4">現值</th>
+          <th onclick="sortHoldings('crypto',5)" id="th-crypto-5">損益</th>
+          <th onclick="sortHoldings('crypto',6)" id="th-crypto-6">損益率</th>
+        </tr></thead>
+        <tbody id="crypto-holdings"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- 編輯持倉 Modal -->
+  <div class="modal-overlay" id="edit-modal">
+    <div class="modal" style="width:400px">
+      <h3 id="edit-modal-title">編輯持倉</h3>
+      <div class="form-group">
+        <label>選擇標的</label>
+        <div style="display:flex;gap:8px">
+          <select id="e-select" onchange="loadEditFields()" style="flex:1"></select>
+          <button class="btn-add" style="padding:9px 12px;border-radius:7px;font-size:12px;white-space:nowrap" onclick="switchEditToNew()">＋ 新增</button>
+        </div>
+      </div>
+      <!-- 新增模式：輸入代號 -->
+      <div id="e-new-row" class="form-group" style="display:none">
+        <label>代號</label>
+        <input id="e-new-code" type="text" placeholder="如 2330 或 NVDA" />
+      </div>
+      <div id="edit-fields">
+        <div class="form-group">
+          <label>名稱</label>
+          <input id="e-name" type="text" />
+        </div>
+        <div class="form-group">
+          <label>持有數量</label>
+          <input id="e-shares" type="number" step="any" />
+        </div>
+        <div class="form-group">
+          <label>買入均價</label>
+          <input id="e-avg" type="number" step="0.0001" />
+        </div>
+        <div class="form-group">
+          <label>現價</label>
+          <input id="e-price" type="number" step="0.0001" />
+        </div>
+        <div class="form-group">
+          <label>槓桿倍數</label>
+          <select id="e-leverage">
+            <option value="1">1x（一般）</option>
+            <option value="2">2x（兩倍槓桿 ETF）</option>
+            <option value="3">3x（三倍槓桿 ETF）</option>
+            <option value="-1">-1x（反向）</option>
+            <option value="-2">-2x（兩倍反向）</option>
+          </select>
+        </div>
+      </div>
+      <div class="modal-actions">
+        <button id="e-delete-btn" class="btn-cancel" style="background:rgba(245,101,101,0.15);color:#f56565;border:1px solid rgba(245,101,101,0.3)" onclick="deleteHolding()">刪除</button>
+        <button class="btn-cancel" onclick="closeEditModal()">取消</button>
+        <button class="btn-add" onclick="saveEditHolding()">儲存</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 新增標的 Modal -->
+  <div class="modal-overlay" id="modal">
+    <div class="modal">
+      <h3>新增持倉標的</h3>
+      <div class="form-group">
+        <label>類別</label>
+        <select id="f-type">
+          <option value="tw">台股</option>
+          <option value="us">美股</option>
+          <option value="crypto">加密貨幣</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>代號</label>
+        <div style="display:flex;gap:8px">
+          <input id="f-code" type="text" placeholder="如 2330 或 NVDA" style="flex:1" />
+          <button class="btn-add" style="padding:9px 12px;border-radius:8px;font-size:13px" onclick="fetchPrice()">抓價</button>
+        </div>
+        <div id="f-name-display" style="font-size:12px;color:#4a9eff;margin-top:4px;min-height:16px"></div>
+      </div>
+      <div class="form-group">
+        <label>名稱（選填）</label>
+        <input id="f-name" type="text" placeholder="自動抓取或手動輸入" />
+      </div>
+      <div class="form-group">
+        <label>持有股數</label>
+        <input id="f-shares" type="number" placeholder="0" />
+      </div>
+      <div class="form-group">
+        <label>買入均價</label>
+        <input id="f-avg" type="number" placeholder="0" step="0.01" />
+      </div>
+      <div class="form-group">
+        <label>現價 <span id="f-price-hint" style="color:#4a5568;font-weight:normal"></span></label>
+        <input id="f-price" type="number" placeholder="0" step="0.01" />
+      </div>
+      <div class="form-group">
+        <label>槓桿倍數 <span style="color:#4a5568;font-weight:normal">（一般股票填 1）</span></label>
+        <select id="f-leverage">
+          <option value="1">1x（一般）</option>
+          <option value="2">2x（兩倍槓桿 ETF）</option>
+          <option value="3">3x（三倍槓桿 ETF）</option>
+          <option value="-1">-1x（反向）</option>
+          <option value="-2">-2x（兩倍反向）</option>
+        </select>
+      </div>
+      <div class="modal-actions">
+        <button class="btn-cancel" onclick="closeModal()">取消</button>
+        <button class="btn-add" onclick="addHolding()">買入（扣現金）</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 賣出 Modal -->
+  <div class="modal-overlay" id="sell-modal">
+    <div class="modal">
+      <h3>賣出持倉</h3>
+      <div class="form-group">
+        <label>類別</label>
+        <select id="s-type" onchange="loadSellOptions()">
+          <option value="tw">台股</option>
+          <option value="us">美股</option>
+          <option value="crypto">加密貨幣</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>代號</label>
+        <select id="s-code"></select>
+      </div>
+      <div class="form-group">
+        <label>賣出股數 <span id="s-shares-hint" style="color:#4a5568;font-weight:normal"></span></label>
+        <input id="s-shares" type="number" step="any" placeholder="0" />
+      </div>
+      <div class="form-group">
+        <label>成交價（原幣）</label>
+        <input id="s-price" type="number" step="0.0001" placeholder="0" />
+      </div>
+      <div id="s-preview" style="background:#13161d;border-radius:8px;padding:12px;font-size:13px;color:#7a8499;margin-top:4px;min-height:40px"></div>
+      <div class="modal-actions">
+        <button class="btn-cancel" onclick="closeSellModal()">取消</button>
+        <button class="btn-add" onclick="confirmSell()">確認賣出（加現金）</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 帳本 Modal -->
+  <div class="modal-overlay" id="ledger-modal">
+    <div class="modal" style="width:580px;max-height:80vh;display:flex;flex-direction:column">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+        <h3 style="margin:0">交易帳本</h3>
+        <button class="btn-cancel" onclick="closeLedgerModal()" style="padding:4px 10px;font-size:12px;border-radius:6px;cursor:pointer">關閉</button>
+      </div>
+      <div style="display:flex;gap:10px;margin-bottom:14px;font-size:13px">
+        <div style="background:#13161d;border-radius:8px;padding:10px 14px;flex:1;border:1px solid #1e2230">
+          <div style="color:#5a6780;font-size:10px;text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px">台幣現金</div>
+          <div id="ledger-twd" style="font-size:18px;font-weight:700;color:#e2e8f0">—</div>
+        </div>
+        <div style="background:#13161d;border-radius:8px;padding:10px 14px;flex:1;border:1px solid #1e2230">
+          <div style="color:#5a6780;font-size:10px;text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px">美元現金</div>
+          <div id="ledger-usd" style="font-size:18px;font-weight:700;color:#e2e8f0">—</div>
+        </div>
+        <div style="background:#13161d;border-radius:8px;padding:10px 14px;flex:1;border:1px solid #1e2230">
+          <div style="color:#5a6780;font-size:10px;text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px">現金合計(TWD)</div>
+          <div id="ledger-total" style="font-size:18px;font-weight:700;color:#4a9eff">—</div>
+        </div>
+      </div>
+      <div style="overflow-y:auto;flex:1">
+        <table style="width:100%;border-collapse:collapse">
+          <thead style="position:sticky;top:0;background:#1a1d26">
+            <tr>
+              <th style="text-align:left;padding:6px 8px;font-size:10px;color:#4a5568;text-transform:uppercase;letter-spacing:.04em;border-bottom:1px solid #1e2230">日期</th>
+              <th style="padding:6px 8px;font-size:10px;color:#4a5568;text-transform:uppercase;letter-spacing:.04em;border-bottom:1px solid #1e2230">類型</th>
+              <th style="padding:6px 8px;font-size:10px;color:#4a5568;text-transform:uppercase;letter-spacing:.04em;border-bottom:1px solid #1e2230">代號</th>
+              <th style="text-align:right;padding:6px 8px;font-size:10px;color:#4a5568;text-transform:uppercase;letter-spacing:.04em;border-bottom:1px solid #1e2230">股數</th>
+              <th style="text-align:right;padding:6px 8px;font-size:10px;color:#4a5568;text-transform:uppercase;letter-spacing:.04em;border-bottom:1px solid #1e2230">成交價</th>
+              <th style="text-align:right;padding:6px 8px;font-size:10px;color:#4a5568;text-transform:uppercase;letter-spacing:.04em;border-bottom:1px solid #1e2230">金額</th>
+              <th style="text-align:right;padding:6px 8px;font-size:10px;color:#4a5568;text-transform:uppercase;letter-spacing:.04em;border-bottom:1px solid #1e2230">現金變動</th>
+              <th style="padding:6px 8px;border-bottom:1px solid #1e2230"></th>
+            </tr>
+          </thead>
+          <tbody id="ledger-body"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- 帳本編輯 Modal -->
+  <div class="modal-overlay" id="ledger-edit-modal">
+    <div class="modal" style="width:400px">
+      <h3>編輯交易記錄</h3>
+      <div class="form-group">
+        <label>日期</label>
+        <input id="le-date" type="date" />
+      </div>
+      <div class="form-group">
+        <label>類型</label>
+        <select id="le-type">
+          <option value="buy">買入</option>
+          <option value="sell">賣出</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>市場</label>
+        <select id="le-market">
+          <option value="tw">台股</option>
+          <option value="us">美股</option>
+          <option value="crypto">加密貨幣</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>代號</label>
+        <input id="le-code" type="text" />
+      </div>
+      <div class="form-group">
+        <label>股數 / 數量</label>
+        <input id="le-shares" type="number" step="any" />
+      </div>
+      <div class="form-group">
+        <label>成交價（原幣）</label>
+        <input id="le-price" type="number" step="0.0001" />
+      </div>
+      <div class="modal-actions">
+        <button class="btn-cancel" onclick="closeLedgerEditModal()">取消</button>
+        <button class="btn-add" onclick="saveLedgerEdit()">儲存</button>
+      </div>
+    </div>
+  </div>
+</div><!-- /page-overview -->
+
+<!-- 負債管理頁面 -->
+<div id="page-debt" style="display:none">
+  <div class="page-header">
+    <div>
+      <h1>負債管理</h1>
+      <p>信貸與貸款紀錄</p>
+    </div>
+    <button class="btn active" onclick="openDebtModal()">＋ 新增貸款</button>
+  </div>
+
+  <!-- 摘要卡片 -->
+  <div class="cards" style="grid-template-columns:repeat(4,1fr);margin-bottom:20px;">
+    <div class="card">
+      <div class="card-label">剩餘本金</div>
+      <div class="card-value negative" id="debt-total">—</div>
+    </div>
+    <div class="card">
+      <div class="card-label">每月應繳</div>
+      <div class="card-value" id="debt-monthly-sum">—</div>
+    </div>
+    <div class="card">
+      <div class="card-label">總利息成本</div>
+      <div class="card-value" id="debt-total-interest">—</div>
+    </div>
+    <div class="card">
+      <div class="card-label">平均利率</div>
+      <div class="card-value" id="debt-avg-rate">—</div>
+    </div>
+  </div>
+
+  <!-- 貸款列表 -->
+  <div class="chart-section">
+    <table style="width:100%;border-collapse:collapse;">
+      <thead>
+        <tr style="border-bottom:1px solid #252830;">
+          <th style="text-align:left;padding:12px 16px;font-size:13px;color:#7a8499;font-weight:600;">名稱</th>
+          <th style="text-align:right;padding:12px 16px;font-size:13px;color:#7a8499;font-weight:600;">原始本金</th>
+          <th style="text-align:right;padding:12px 16px;font-size:13px;color:#7a8499;font-weight:600;">剩餘本金</th>
+          <th style="text-align:right;padding:12px 16px;font-size:13px;color:#7a8499;font-weight:600;">年利率</th>
+          <th style="text-align:right;padding:12px 16px;font-size:13px;color:#7a8499;font-weight:600;">月繳金額</th>
+          <th style="text-align:right;padding:12px 16px;font-size:13px;color:#7a8499;font-weight:600;">剩餘期數</th>
+          <th style="text-align:right;padding:12px 16px;font-size:13px;color:#7a8499;font-weight:600;">撥款日</th>
+          <th style="text-align:right;padding:12px 16px;font-size:13px;color:#7a8499;font-weight:600;">預計還清</th>
+          <th style="text-align:left;padding:12px 16px;font-size:13px;color:#7a8499;font-weight:600;">備註</th>
+          <th style="padding:12px 16px;"></th>
+        </tr>
+      </thead>
+      <tbody id="debt-table-body"></tbody>
+    </table>
+    <div id="debt-empty" style="text-align:center;padding:40px;color:#4a5568;font-size:14px;">尚無貸款紀錄，點擊右上角新增</div>
+  </div>
+</div><!-- /page-debt -->
+
+<!-- 新增/編輯貸款 Modal -->
+<div id="debt-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:1000;align-items:center;justify-content:center;">
+  <div style="background:#1a1d26;border:1px solid #252830;border-radius:12px;padding:28px;width:460px;max-width:90vw;max-height:90vh;overflow-y:auto;">
+    <div style="font-size:16px;font-weight:700;color:#e2e8f0;margin-bottom:20px;" id="debt-modal-title">新增貸款</div>
+    <div style="display:grid;gap:14px;">
+      <div>
+        <label style="font-size:12px;color:#7a8499;display:block;margin-bottom:6px;">貸款名稱</label>
+        <input id="d-name" type="text" placeholder="如：玉山信貸" style="width:100%;background:#13161d;border:1px solid #2e3342;border-radius:6px;padding:8px 12px;color:#e2e8f0;font-size:14px;outline:none;">
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+        <div>
+          <label style="font-size:12px;color:#7a8499;display:block;margin-bottom:6px;">原始本金 (TWD)</label>
+          <input id="d-principal" type="number" placeholder="0" style="width:100%;background:#13161d;border:1px solid #2e3342;border-radius:6px;padding:8px 12px;color:#e2e8f0;font-size:14px;outline:none;">
+        </div>
+        <div>
+          <label style="font-size:12px;color:#7a8499;display:block;margin-bottom:6px;">剩餘本金 (TWD)</label>
+          <input id="d-remaining" type="number" placeholder="0" style="width:100%;background:#13161d;border:1px solid #2e3342;border-radius:6px;padding:8px 12px;color:#e2e8f0;font-size:14px;outline:none;">
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+        <div>
+          <label style="font-size:12px;color:#7a8499;display:block;margin-bottom:6px;">年利率 (%)</label>
+          <input id="d-rate" type="number" step="0.01" placeholder="2.62" style="width:100%;background:#13161d;border:1px solid #2e3342;border-radius:6px;padding:8px 12px;color:#e2e8f0;font-size:14px;outline:none;">
+        </div>
+        <div>
+          <label style="font-size:12px;color:#7a8499;display:block;margin-bottom:6px;">月繳金額 (TWD)</label>
+          <input id="d-monthly" type="number" step="0.01" placeholder="17800.32" style="width:100%;background:#13161d;border:1px solid #2e3342;border-radius:6px;padding:8px 12px;color:#e2e8f0;font-size:14px;outline:none;">
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;">
+        <div>
+          <label style="font-size:12px;color:#7a8499;display:block;margin-bottom:6px;">剩餘期數（月）</label>
+          <input id="d-months" type="number" placeholder="55" style="width:100%;background:#13161d;border:1px solid #2e3342;border-radius:6px;padding:8px 12px;color:#e2e8f0;font-size:14px;outline:none;">
+        </div>
+        <div>
+          <label style="font-size:12px;color:#7a8499;display:block;margin-bottom:6px;">撥款日</label>
+          <input id="d-startdate" type="date" style="width:100%;background:#13161d;border:1px solid #2e3342;border-radius:6px;padding:8px 12px;color:#e2e8f0;font-size:14px;outline:none;">
+        </div>
+        <div>
+          <label style="font-size:12px;color:#7a8499;display:block;margin-bottom:6px;">每月還款日</label>
+          <input id="d-payday" type="number" min="1" max="31" placeholder="9" style="width:100%;background:#13161d;border:1px solid #2e3342;border-radius:6px;padding:8px 12px;color:#e2e8f0;font-size:14px;outline:none;">
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+        <div>
+          <label style="font-size:12px;color:#7a8499;display:block;margin-bottom:6px;">資金內扣（月）</label>
+          <input id="d-deduct" type="number" placeholder="10000" style="width:100%;background:#13161d;border:1px solid #2e3342;border-radius:6px;padding:8px 12px;color:#e2e8f0;font-size:14px;outline:none;">
+        </div>
+        <div>
+          <label style="font-size:12px;color:#7a8499;display:block;margin-bottom:6px;">薪水補貼（月）</label>
+          <input id="d-salary" type="number" placeholder="7800" style="width:100%;background:#13161d;border:1px solid #2e3342;border-radius:6px;padding:8px 12px;color:#e2e8f0;font-size:14px;outline:none;">
+        </div>
+      </div>
+      <div>
+        <label style="font-size:12px;color:#7a8499;display:block;margin-bottom:6px;">備註</label>
+        <input id="d-note" type="text" placeholder="選填" style="width:100%;background:#13161d;border:1px solid #2e3342;border-radius:6px;padding:8px 12px;color:#e2e8f0;font-size:14px;outline:none;">
+      </div>
+    </div>
+    <div style="display:flex;gap:10px;margin-top:20px;justify-content:flex-end;">
+      <button class="btn" onclick="closeDebtModal()">取消</button>
+      <button class="btn active" onclick="saveDebt()">儲存</button>
+    </div>
+  </div>
+</div>
+
+</div><!-- /main -->
+<!-- 原本 main 結尾已移至上方 -->
+
+<script>
+// 台股中文名稱對照表
+const TW_NAMES = {
+  '0050':'元大台灣50','0051':'元大中型100','0052':'富邦科技','0053':'元大電子','0054':'元大台商50',
+  '0055':'元大MSCI金融','0056':'元大高股息','0057':'富邦摩台','0058':'富邦發達','0059':'富邦金融',
+  '1101':'台泥','1102':'亞泥','1216':'統一','1301':'台塑','1303':'南亞','1326':'台化',
+  '2002':'中鋼','2105':'正新','2207':'和泰車','2301':'光寶科','2303':'聯電','2308':'台達電',
+  '2317':'鴻海','2327':'國巨','2330':'台積電','2331':'精英','2347':'聯強','2353':'宏碁',
+  '2354':'鴻準','2356':'英業達','2357':'華碩','2360':'致茂','2376':'技嘉','2377':'微星',
+  '2379':'瑞昱','2382':'廣達','2383':'台光電','2385':'群光','2395':'研華','2401':'凌陽',
+  '2404':'漢唐','2408':'南亞科','2409':'友達','2412':'中華電','2454':'聯發科','2474':'可成',
+  '2481':'強茂','2492':'華新科','2498':'宏達電','2603':'長榮','2609':'陽明','2615':'萬海',
+  '2618':'長榮航','2801':'彰銀','2820':'華票','2880':'華南金','2881':'富邦金','2882':'國泰金',
+  '2883':'開發金','2884':'玉山金','2885':'元大金','2886':'兆豐金','2887':'台新金','2888':'新光金',
+  '2890':'永豐金','2891':'中信金','2892':'第一金','2912':'統一超','3008':'大立光','3034':'聯詠',
+  '3037':'欣興','3045':'台灣大','3231':'緯創','3481':'群創','3711':'日月光投控','4904':'遠傳',
+  '4938':'和碩','5880':'合庫金','6443':'元晶','6505':'台塑化','6669':'緯穎',
+  '6442':'光聖','3402':'漢科',
+};
+
+const RAW = {
+  summary: {
+    totalAssets: 0, totalCost: 0, unrealizedPnl: 0, unrealizedPct: 0,
+    netAssets: 0, cashTWD: 170000, cashUSD: 0, loan: 953047,
+    leverageRate: 0, effectiveLeverage: 0,
+    riskStatus: '✅ 正常運行',
+    twStock: 0, usStock: 0, crypto: 0,
+  },
+  twHoldings: [
+    { code: '0050', name: '元大台灣50', shares: 12000, avgPrice: 68.05, price: null, pnl: 0, pnlPct: 0 },
+    { code: '006208', name: '富邦台50', shares: 42, avgPrice: 116.79, price: null, pnl: 0, pnlPct: 0 },
+    { code: '2330', name: '台積電', shares: 100, avgPrice: 1062.44, price: null, pnl: 0, pnlPct: 0 },
+    { code: '2404', name: '漢唐', shares: 100, avgPrice: 1070.00, price: null, pnl: 0, pnlPct: 0 },
+    { code: '4772', name: '台特化', shares: 300, avgPrice: 337.37, price: null, pnl: 0, pnlPct: 0 },
+    { code: '總和', shares: null, avgPrice: null, price: null, pnl: 0, pnlPct: 0, isTotal: true },
+  ],
+  cryptoHoldings: [
+    { code: '總和', shares: null, avgPrice: null, price: null, pnl: 0, pnlPct: 0, isTotal: true },
+  ],
+  usHoldings: [
+    { code: 'AVL', shares: 33.24567, avgPrice: 51.49422, price: null, pnl: 0, pnlPct: 0 },
+    { code: 'NAK', shares: 197, avgPrice: 2.5599, price: null, pnl: 0, pnlPct: 0 },
+    { code: 'NVDA', shares: 2.00022, avgPrice: 177.70045, price: null, pnl: 0, pnlPct: 0 },
+    { code: 'NVDL', shares: 13, avgPrice: 78.95769, price: null, pnl: 0, pnlPct: 0, leverage: 2 },
+    { code: 'PLTR', shares: 1, avgPrice: 169.38, price: null, pnl: 0, pnlPct: 0 },
+    { code: 'QLD', shares: 8.01201, avgPrice: 70.48419, price: null, pnl: 0, pnlPct: 0, leverage: 2 },
+    { code: 'SSO', shares: 8, avgPrice: 53.00, price: null, pnl: 0, pnlPct: 0, leverage: 2 },
+    { code: 'TSLA', shares: 3, avgPrice: 466.21, price: null, pnl: 0, pnlPct: 0 },
+    { code: 'TSLL', shares: 352.18345, avgPrice: 14.19016, price: null, pnl: 0, pnlPct: 0, leverage: 2 },
+    { code: 'VOO', shares: 7.01554, avgPrice: 632.05113, price: null, pnl: 0, pnlPct: 0 },
+    { code: '總和', shares: null, avgPrice: null, price: null, pnl: 0, pnlPct: 0, isTotal: true },
+  ],
+  // [日期, 台股, 美股, 加密, 合計]
+  history: [
+    ["2024/4/7",132147,49994,115421,297562],
+    ["2024/4/8",132574,49994,119915,302484],
+    ["2024/4/9",135921,50783,119372,306077],
+    ["2024/4/10",135778,50730,116960,303468],
+    ["2024/4/11",135209,50592,119518,305318],
+    ["2024/4/12",134995,52113,118422,305530],
+    ["2024/4/13",134995,50865,112811,298671],
+    ["2024/4/14",134995,50865,109852,295713],
+    ["2024/4/15",133571,50865,112982,297419],
+    ["2024/4/16",134576,48899,109755,293230],
+    ["2024/4/17",136124,48773,110214,295111],
+    ["2024/4/18",137156,47472,106041,290669],
+    ["2024/4/19",130449,46945,108443,285837],
+    ["2024/4/20",130449,43852,109415,283717],
+    ["2024/4/21",130449,43852,111593,285894],
+    ["2024/4/22",129712,44726,109095,283532],
+    ["2024/4/23",130818,45124,108509,284451],
+    ["2024/4/24",134724,46305,107348,288377],
+    ["2024/4/25",132586,47791,104754,285131],
+    ["2024/4/26",134650,49821,134209,318680],
+    ["2024/4/27",134650,51304,133297,319252],
+    ["2024/4/28",134650,51304,136862,322816],
+    ["2024/4/29",136714,51318,133804,321835],
+    ["2024/4/30",136640,54809,134469,325917],
+    ["2024/5/1",136640,52925,129062,318627],
+    ["2024/5/2",134871,51190,126372,312433],
+    ["2024/5/3",135608,51863,108000,295471],
+    ["2024/5/4",135608,52869,113129,301606],
+    ["2024/5/5",135608,52869,113017,301495],
+    ["2024/5/6",137524,52929,115514,305968],
+    ["2024/5/7",138188,54629,113246,306063],
+    ["2024/5/8",138703,53212,111642,303557],
+    ["2024/5/9",138556,52756,111339,302651],
+    ["2024/5/10",139662,51857,112523,304041],
+    ["2024/5/11",139662,51767,109191,300619],
+    ["2024/5/12",139662,51767,109250,300678],
+    ["2024/5/13",140620,51730,109052,301401],
+    ["2024/5/14",141725,52374,109500,303599],
+    ["2024/5/15",143715,53068,108163,304946],
+    ["2024/5/16",144599,53434,112945,310979],
+    ["2024/5/17",144157,53692,111812,309661],
+    ["2024/5/18",144157,53386,115005,312548],
+    ["2024/5/19",144157,53386,115363,312906],
+    ["2024/5/20",143936,53519,115527,312982],
+    ["2024/5/21",143862,54008,128637,326507],
+    ["2024/5/22",146663,55697,129198,331558],
+    ["2024/5/23",147695,54620,128609,330924],
+    ["2024/5/24",147253,56662,125219,329134],
+    ["2024/5/25",147253,58246,127409,332908],
+    ["2024/5/26",147253,58246,127803,333302],
+    ["2024/5/27",149021,58123,129653,336797],
+    ["2024/5/28",149095,58066,127900,335061],
+    ["2024/5/29",147474,60441,129304,337219],
+    ["2024/5/30",144894,61008,127589,333491],
+    ["2024/5/31",143715,60028,128017,331759],
+    ["2024/6/1",143715,59530,127871,331115],
+    ["2024/6/2",143715,59530,128658,331903],
+    ["2024/6/3",146147,59319,130262,335728],
+    ["2024/6/4",144157,60911,129509,334577],
+    ["2024/6/5",145558,61048,133826,340432],
+    ["2024/6/6",150053,62863,133749,346666],
+    ["2024/6/7",148948,62770,133755,345473],
+    ["2024/6/8",148948,62978,130396,342322],
+    ["2024/6/9",148948,62978,130062,341987],
+    ["2024/6/10",148948,27730,129275,305953],
+    ["2024/6/11",149316,62696,124589,336601],
+    ["2024/6/12",152043,61950,123597,337590],
+    ["2024/6/13",154107,64206,122976,341288],
+    ["2024/6/14",155138,66403,122997,344538],
+    ["2024/6/15",155138,66472,122932,344543],
+    ["2024/6/16",155138,66472,123212,344823],
+    ["2024/6/17",155065,66512,123380,344957],
+    ["2024/6/18",157644,67541,120685,345871],
+    ["2024/6/19",162508,68628,122712,353849],
+    ["2024/6/20",163393,68691,123203,355287],
+    ["2024/6/21",162140,66627,120729,349496],
+    ["2024/6/22",162140,65482,120549,348172],
+    ["2024/6/23",162140,65482,120746,348368],
+    ["2024/6/24",158602,65467,116487,340556],
+    ["2024/6/25",158381,62782,115853,337016],
+    ["2024/6/26",159855,66291,117034,343181],
+    ["2024/6/27",159560,67593,115683,342837],
+    ["2024/6/28",160961,66760,117727,345447],
+    ["2024/6/29",160961,66790,115915,343665],
+    ["2024/6/30",160961,66790,115772,343522],
+    ["2024/7/1",161256,66789,119867,347911],
+    ["2024/7/2",160076,68831,119056,347964],
+    ["2024/7/3",161919,71381,116454,349753],
+    ["2024/7/4",166046,74884,110737,351667],
+    ["2024/7/5",165678,74741,99433,339851],
+    ["2024/7/6",165678,74494,104387,344558],
+    ["2024/7/7",160620,74494,131041,366154],
+    ["2024/7/8",165192,74568,126893,366653],
+    ["2024/7/9",165407,75779,132291,373477],
+    ["2024/7/10",166121,78178,134629,378928],
+    ["2024/7/11",169908,79289,133386,382583],
+    ["2024/7/12",165192,73904,132728,371824],
+    ["2024/7/13",165192,75460,134851,375503],
+    ["2024/7/14",165192,75460,137627,378279],
+    ["2024/7/15",164907,75576,159513,399996],
+    ["2024/7/16",164621,75944,163001,403567],
+    ["2024/7/17",162477,75773,180862,419112],
+    ["2024/7/18",159191,72017,178515,409723],
+    ["2024/7/19",155761,73372,178498,407631],
+    ["2024/7/20",155761,71122,183956,410839],
+    ["2024/7/21",155761,71122,184114,410996],
+    ["2024/7/22",150902,71262,184883,407048],
+    ["2024/7/23",155261,74705,181772,411738],
+    ["2024/7/24",155261,73565,181299,410125],
+    ["2024/7/25",155261,66669,172678,394608],
+    ["2024/7/26",149759,66741,154073,370573],
+    ["2024/7/27",149759,66928,155240,371928],
+    ["2024/7/28",149759,66928,153758,370445],
+    ["2024/7/29",150974,66978,159369,377321],
+    ["2024/7/30",151117,68228,154181,373525],
+    ["2024/7/31",150974,64290,154845,370108],
+    ["2024/8/1",153689,69792,149363,372844],
+    ["2024/8/2",146330,65173,148667,360170],
+    ["2024/8/3",146330,62978,141310,350618],
+    ["2024/8/4",146330,62978,138305,347613],
+    ["2024/8/5",133897,63221,110622,307740],
+    ["2024/8/6",139399,59728,125934,325061],
+    ["2024/8/7",145044,61170,126691,332904],
+    ["2024/8/8",142471,57869,124514,324855],
+    ["2024/8/9",146758,60626,133196,340580],
+    ["2024/8/10",146758,60834,131818,339411],
+    ["2024/8/11",146758,60834,134780,342372],
+    ["2024/8/12",148687,60839,128608,338134],
+    ["2024/8/13",149188,61858,131979,343024],
+    ["2024/8/14",150974,65231,134402,350607],
+    ["2024/8/15",150116,65080,130066,345263],
+    ["2024/8/16",153403,68255,130127,351785],
+    ["2024/8/17",153403,68879,130389,352671],
+    ["2024/8/18",153403,68879,132339,354621],
+    ["2024/8/19",153546,68422,130564,352533],
+    ["2024/8/20",153618,70902,135988,360507],
+    ["2024/8/21",151831,69858,133308,354997],
+    ["2024/8/22",151188,70594,135498,357281],
+    ["2024/8/23",151403,67418,137015,355836],
+    ["2024/8/24",151403,70147,140037,361587],
+    ["2024/8/25",151403,70147,139924,361474],
+    ["2024/8/26",151331,70149,138390,359871],
+    ["2024/8/27",150760,68527,136226,355513],
+    ["2024/8/28",152832,68696,129434,350962],
+    ["2024/8/29",151117,67316,131176,349609],
+    ["2024/8/30",151117,64897,129125,345138],
+    ["2024/8/31",151117,66559,130200,347875],
+    ["2024/9/1",151117,66559,126844,344520],
+    ["2024/9/2",150974,66641,125175,342790],
+    ["2024/9/3",150545,66708,129641,346894],
+    ["2024/9/4",143329,62728,124150,330206],
+    ["2024/9/5",143972,63181,123767,330919],
+    ["2024/9/6",145972,64536,122446,332954],
+    ["2024/9/7",145972,60873,118480,325326],
+    ["2024/9/8",145972,60873,119497,326343],
+    ["2024/9/9",143614,60944,120788,325346],
+    ["2024/9/10",143686,63060,124637,331383],
+    ["2024/9/11",143329,64792,123199,331320],
+    ["2024/9/12",148616,67888,127394,343898],
+    ["2024/9/13",149188,68589,126792,344568],
+    ["2024/9/14",149188,68490,129377,347055],
+    ["2024/9/15",149188,68490,129756,347434],
+    ["2024/9/16",149759,68247,127458,345465],
+    ["2024/9/17",190317,67073,136205,393595],
+    ["2024/9/18",188682,67133,139146,394961],
+    ["2024/9/19",191316,66212,142276,399803],
+    ["2024/9/20",193586,69942,145536,409064],
+    ["2024/9/21",193586,68612,145473,407670],
+    ["2024/9/22",193586,68612,145981,408179],
+    ["2024/9/23",194312,68781,148068,411161],
+    ["2024/9/24",196219,70324,148215,414758],
+    ["2024/9/25",199397,72040,150750,422187],
+    ["2024/9/26",200759,73261,150113,424133],
+    ["2024/9/27",200305,72586,152057,424947],
+    ["2024/9/28",200305,72365,151720,424390],
+    ["2024/9/29",200305,72365,150835,423504],
+    ["2024/9/30",195220,72504,148478,416202],
+    ["2024/10/1",195220,73127,148585,416932],
+    ["2024/10/2",195220,71238,143469,409927],
+    ["2024/10/3",195220,71079,143312,409611],
+    ["2024/10/4",195220,71199,143264,409684],
+    ["2024/10/5",195220,73726,144351,413297],
+    ["2024/10/6",195220,73726,144824,413770],
+    ["2024/10/7",199669,73508,147389,420566],
+    ["2024/10/8",198761,73156,145722,417640],
+    ["2024/10/9",201122,75333,147959,424414],
+    ["2024/10/10",201122,74940,146881,422944],
+    ["2024/10/11",204572,75180,145588,425340],
+    ["2024/10/12",204572,72364,147323,424260],
+    ["2024/10/13",204572,72364,146851,423787],
+    ["2024/10/14",204845,72354,147764,424962],
+    ["2024/10/15",208749,73605,147974,430328],
+    ["2024/10/16",205480,71642,154171,431294],
+    ["2024/10/17",205571,73076,155456,434103],
+    ["2024/10/18",210474,73254,155357,439086],
+    ["2024/10/19",210474,73501,186028,470003],
+    ["2024/10/20",210474,73501,185543,469518],
+    ["2024/10/21",211019,73261,188487,472767],
+    ["2024/10/22",209930,75035,185163,470127],
+    ["2024/10/23",208658,74992,183268,466918],
+    ["2024/10/24",207387,73066,183142,463595],
+    ["2024/10/25",208840,79592,182926,471358],
+    ["2024/10/26",208840,81120,180967,470927],
+    ["2024/10/27",208840,136347,181147,526334],
+    ["2024/10/28",208568,136350,182536,527454],
+    ["2024/10/29",204754,134215,190300,529269],
+    ["2024/10/30",203755,133345,191690,528790],
+    ["2024/10/31",203755,132020,200763,536539],
+    ["2024/11/1",202756,127194,193438,523388],
+    ["2024/11/2",202756,128525,194062,525343],
+    ["2024/11/3",202756,128525,190468,521749],
+    ["2024/11/4",205480,128063,190197,523741],
+    ["2024/11/5",206025,127021,190029,523075],
+    ["2024/11/6",207750,132006,205728,545485],
+    ["2024/11/7",209566,145535,208859,563960],
+    ["2024/11/8",211473,148363,210951,570787],
+    ["2024/11/9",211473,155681,217687,584841],
+    ["2024/11/10",211473,155681,222662,589816],
+    ["2024/11/11",211473,156053,247797,615322],
+    ["2024/11/12",206479,164193,266660,637332],
+    ["2024/11/13",205117,159338,264102,628556],
+    ["2024/11/14",203483,159916,276011,639410],
+    ["2024/11/15",203937,153775,268138,625849],
+    ["2024/11/16",203937,154431,275575,633942],
+    ["2024/11/17",203937,154431,274989,633357],
+    ["2024/11/18",200486,154793,276570,631850],
+    ["2024/11/19",202393,158632,274942,635967],
+    ["2024/11/20",201939,163580,275741,641260],
+    ["2024/11/21",199578,162463,284241,646283],
+    ["2024/11/22",202756,161631,291547,655935],
+    ["2024/11/23",202756,164048,294716,661521],
+    ["2024/11/24",202756,164048,296827,663632],
+    ["2024/11/25",202393,163451,295000,660844],
+    ["2024/11/26",199578,157706,287386,644670],
+    ["2024/11/27",197127,158710,282094,637930],
+    ["2024/11/28",196673,156346,292206,645226],
+    ["2024/11/29",196582,156421,293154,646157],
+    ["2024/11/30",196582,160701,295794,653076],
+    ["2024/12/1",196582,160701,293624,650907],
+    ["2024/12/2",201848,161384,294223,657456],
+    ["2024/12/3",204209,165325,295673,665207],
+    ["2024/12/4",205844,163305,309506,678654],
+    ["2024/12/5",206752,167258,314265,688275],
+    ["2024/12/6",206116,170538,309265,685919],
+    ["2024/12/7",206116,176125,314684,696924],
+    ["2024/12/8",206116,176125,315489,697730],
+    ["2024/12/9",206298,176390,310460,693147],
+    ["2024/12/10",205390,175242,301968,682600],
+    ["2024/12/11",203210,177674,300617,681502],
+    ["2024/12/12",205480,186304,312686,704470],
+    ["2024/12/13",206025,183586,309692,699304],
+    ["2024/12/14",206025,188017,316829,710872],
+    ["2024/12/15",206025,188017,314117,708159],
+    ["2024/12/16",206570,187703,320301,714575],
+    ["2024/12/17",207387,195455,323181,726023],
+    ["2024/12/18",207750,199650,315348,722748],
+    ["2024/12/19",205390,188304,311827,705520],
+    ["2024/12/20",203210,187573,294864,685647],
+    ["2024/12/21",203210,184157,302869,690236],
+    ["2024/12/22",203210,184157,293006,680373],
+    ["2024/12/23",193500,169294,294082,656876],
+    ["2024/12/24",193900,171826,299727,665452],
+    ["2024/12/25",195700,170325,309136,675161],
+    ["2024/12/26",195500,170520,309471,675491],
+    ["2024/12/27",196400,169036,304602,670038],
+    ["2024/12/28",196400,163661,300908,660968],
+    ["2024/12/29",196400,163661,305341,665401],
+    ["2024/12/30",193200,163455,301091,657746],
+    ["2024/12/31",191600,161897,298484,651980],
+    ["2025/1/1",191600,157224,300908,649732],
+    ["2025/1/2",187400,157555,305430,650385],
+    ["2025/1/3",189900,159457,308502,657860],
+    ["2025/1/4",189900,168812,314403,673115],
+    ["2025/1/5",189900,168812,314318,673030],
+    ["2025/1/6",200000,168675,316988,685663],
+    ["2025/1/7",202500,173479,321959,697937],
+    ["2025/1/8",198100,161956,302969,663024],
+    ["2025/1/9",192100,162154,302416,656670],
+    ["2025/1/10",191400,162266,300736,654402],
+    ["2025/1/11",191400,158085,302830,652314],
+    ["2025/1/12",191400,158085,303230,652715],
+    ["2025/1/13",182600,158066,299416,640083],
+    ["2025/1/14",185400,155975,301858,643233],
+    ["2025/1/15",182200,153824,307040,643064],
+    ["2025/1/16",189400,161021,314076,664497],
+    ["2025/1/17",190900,156496,317762,665159],
+    ["2025/1/18",190900,162423,318599,671922],
+    ["2025/1/19",190900,162423,321699,675022],
+    ["2025/1/20",194400,161801,315802,672003],
+    ["2025/1/21",194900,161468,308495,664863],
+    ["2025/1/22",199900,165259,319825,684984],
+    ["2025/1/23",199900,171016,311676,682592],
+    ["2025/1/24",199900,170295,315347,685542],
+    ["2025/1/25",199900,165701,314864,680465],
+    ["2025/1/26",199900,165701,317663,683264],
+    ["2025/1/27",199900,166034,300383,666317],
+    ["2025/1/28",199900,142434,312934,655268],
+    ["2025/1/29",199900,150602,311025,661527],
+    ["2025/1/30",199900,145327,315865,661091],
+    ["2025/1/31",199900,146669,316442,663011],
+    ["2025/2/1",199900,143942,312495,656337],
+    ["2025/2/2",199900,143942,304864,648706],
+    ["2025/2/3",183500,144737,274751,602987],
+    ["2025/2/4",183800,139789,287350,610940],
+    ["2025/2/5",191000,142227,282718,615945],
+    ["2025/2/6",192200,144520,285634,622354],
+    ["2025/2/7",195000,147383,280042,622425],
+    ["2025/2/8",195000,145550,280432,620982],
+    ["2025/2/9",195000,145550,280432,620982],
+    ["2025/2/10",192000,145502,285128,622630],
+    ["2025/2/11",193600,148308,292766,634674],
+    ["2025/2/12",193100,146188,286727,626015],
+    ["2025/2/13",194300,144243,299333,637876],
+    ["2025/2/14",190600,149267,294472,634338],
+    ["2025/2/15",190600,151430,293664,635694],
+    ["2025/2/16",190600,151430,293664,635694],
+    ["2025/2/17",196200,151520,293677,641397],
+    ["2025/2/18",198100,151796,288547,638443],
+    ["2025/2/19",197400,151678,289435,638513],
+    ["2025/2/20",196300,152125,291456,639881],
+    ["2025/2/21",199700,151626,295369,646695],
+    ["2025/2/22",199700,144075,289706,633481],
+    ["2025/2/23",199700,144075,289706,633481],
+    ["2025/2/24",196900,143834,288905,629639],
+    ["2025/2/25",192600,139372,274561,606533],
+    ["2025/2/26",194200,134516,271421,600137],
+    ["2025/2/27",190700,138077,265840,594617],
+    ["2025/2/28",190700,127642,244852,563194],
+    ["2025/3/1",190700,132255,257710,580664],
+    ["2025/3/2",190700,132255,257710,580664],
+    ["2025/3/3",183300,132221,274974,590495],
+    ["2025/3/4",181500,122053,251529,555083],
+    ["2025/3/5",185800,121905,261755,569460],
+    ["2025/3/6",183600,124124,273082,580806],
+    ["2025/3/7",180200,116981,264709,561890],
+    ["2025/3/8",180200,118032,261074,559305],
+    ["2025/3/9",180200,118032,261074,559305],
+    ["2025/3/10",178700,118120,247849,544668],
+    ["2025/3/11",172200,111299,239717,523216],
+    ["2025/3/12",174100,113127,243999,531225],
+    ["2025/3/13",171000,119167,250622,540789],
+    ["2025/3/14",170900,117982,249261,538142],
+    ["2025/3/15",170900,122994,253985,547879],
+    ["2025/3/16",170900,122994,253985,547879],
+    ["2025/3/17",173400,123250,258658,555307],
+    ["2025/3/18",175100,120783,258791,554674],
+    ["2025/3/19",171900,116909,258121,546930],
+    ["2025/3/20",177200,118962,264466,560627],
+    ["2025/3/21",174200,119641,262047,555889],
+    ["2025/3/22",174200,119704,262537,556440],
+    ["2025/3/23",174200,119704,262537,556440],
+    ["2025/3/24",173100,119841,266806,559747],
+    ["2025/3/25",175700,125000,269846,570546],
+    ["2025/3/26",176200,125473,269679,571353],
+    ["2025/3/27",170400,118790,269461,558651],
+    ["2025/3/28",164600,117366,265781,547747],
+    ["2025/3/29",164600,114254,261415,540270],
+    ["2025/3/30",164600,114254,261415,540270],
+    ["2025/3/31",152400,114254,261415,528070],
+    ["2025/4/1",159200,113283,257839,530322],
+    ["2025/4/2",159600,114759,257570,531929],
+    ["2025/4/3",159600,115894,262600,538094],
+    ["2025/4/4",159600,106526,262600,528725],
+    ["2025/4/5",159600,99482,262600,521682],
+    ["2025/4/6",159600,99482,262600,521682],
+    ["2025/4/7",127700,99421,226915,454036],
+    ["2025/4/8",112900,101315,238610,452826],
+    ["2025/4/9",100700,99738,232214,432652],
+    ["2025/4/10",120800,113863,245553,480216],
+    ["2025/4/11",127000,106713,242864,476577],
+    ["2025/4/12",127000,107580,242823,477404],
+    ["2025/4/13",127000,107580,242823,477404],
+    ["2025/4/14",127100,107702,247389,482191],
+    ["2025/4/15",131300,107826,250497,489623],
+    ["2025/4/16",126000,108483,245565,480047],
+    ["2025/4/17",125200,102327,248176,475704],
+    ["2025/4/18",125400,100226,248508,474134],
+    ["2025/4/19",125400,100226,248956,474582],
+    ["2025/4/20",125400,100226,248956,474582],
+    ["2025/4/21",121600,100232,256671,478504],
+    ["2025/4/22",118400,96151,255840,470391],
+    ["2025/4/23",128000,98542,270582,497123],
+    ["2025/4/24",126400,102061,266027,494488],
+    ["2025/4/25",131800,105454,268724,505977],
+    ["2025/4/26",131800,109645,271440,512886],
+    ["2025/4/27",131800,109645,271440,512886],
+    ["2025/4/28",133400,109466,270036,512902],
+    ["2025/4/29",136200,107156,268974,512330],
+    ["2025/4/30",135800,106413,265453,507666],
+    ["2025/5/1",135800,105808,264099,505707],
+    ["2025/5/2",143200,104600,260234,508034],
+    ["2025/5/3",143200,105883,260417,509501],
+    ["2025/5/4",143200,105883,260417,509501],
+    ["2025/5/5",139200,102662,247002,488863],
+    ["2025/5/6",138500,102299,249282,490081],
+    ["2025/5/7",138800,101946,254046,494792],
+    ["2025/5/8",141900,105128,260811,507839],
+    ["2025/5/9",145300,105360,270859,521520],
+    ["2025/5/10",145300,105780,272535,523614],
+    ["2025/5/11",145300,105780,272535,523614],
+    ["2025/5/12",148400,105888,280121,534409],
+    ["2025/5/13",151800,113531,277674,543005],
+    ["2025/5/14",158200,118569,282393,559162],
+    ["2025/5/15",157400,122094,275543,555036],
+    ["2025/5/16",159100,120416,279413,558930],
+    ["2025/5/17",159100,121595,279515,560211],
+    ["2025/5/18",159100,121595,279515,560211],
+    ["2025/5/19",154300,121537,272585,548422],
+    ["2025/5/20",154900,121142,280756,556799],
+    ["2025/5/21",158700,119979,285709,564387],
+    ["2025/5/22",155400,116775,292316,564491],
+    ["2025/5/23",154700,117804,292629,565133],
+    ["2025/5/24",154700,116378,287432,558510],
+    ["2025/5/25",154700,116378,287432,558510],
+    ["2025/5/26",153900,116393,288437,558730],
+    ["2025/5/27",151300,116482,289284,557067],
+    ["2025/5/28",151700,120836,288419,560955],
+    ["2025/5/29",152800,119920,288350,561070],
+    ["2025/5/30",152800,122779,285767,561346],
+    ["2025/5/31",152800,118898,285767,557465],
+    ["2025/6/1",152800,118898,285767,557465],
+    ["2025/6/2",146100,119317,278632,544049],
+    ["2025/6/3",147900,121272,281588,550760],
+    ["2025/6/4",155600,123858,282222,561680],
+    ["2025/6/5",155900,123577,280148,559624],
+    ["2025/6/6",156600,119893,272678,549172],
+    ["2025/6/7",156600,122480,277333,556413],
+    ["2025/6/8",156600,122480,277333,556413],
+    ["2025/6/9",158300,122427,278318,559045],
+    ["2025/6/10",164500,124062,287720,576282],
+    ["2025/6/11",167300,125791,289647,582738],
+    ["2025/6/12",166300,123324,283164,572788],
+    ["2025/6/13",162400,123990,272230,558620],
+    ["2025/6/14",162400,121801,275321,559522],
+    ["2025/6/15",162400,121801,275321,559522],
+    ["2025/6/16",163400,121764,277963,563128],
+    ["2025/6/17",164100,124055,277456,565611],
+    ["2025/6/18",166500,123107,274523,564130],
+    ["2025/6/19",163300,124290,273410,561000],
+    ["2025/6/20",162400,123885,272485,558770],
+    ["2025/6/21",162400,122386,272246,557032],
+    ["2025/6/22",162400,122386,272246,557032],
+    ["2025/6/23",159800,122969,264440,547208],
+    ["2025/6/24",166700,123602,273075,563377],
+    ["2025/6/25",170000,125650,273572,569223],
+    ["2025/6/26",169100,128228,273223,570551],
+    ["2025/6/27",168800,128221,269743,566764],
+    ["2025/6/28",168800,131934,272006,572740],
+    ["2025/6/29",168800,131934,272006,572740],
+    ["2025/6/30",169800,132426,275482,577708],
+    ["2025/7/1",173100,131648,273350,578097],
+    ["2025/7/2",173400,127021,272226,572647],
+    ["2025/7/3",178200,129490,276260,583949],
+    ["2025/7/4",174600,131581,275468,581649],
+    ["2025/7/5",174600,131660,272453,578713],
+    ["2025/7/6",174600,131660,272453,578713],
+    ["2025/7/7",172200,132244,277372,581816],
+    ["2025/7/8",171100,130677,275989,577766],
+    ["2025/7/9",174400,131792,278413,584605],
+    ["2025/7/10",176600,134758,285669,597027],
+    ["2025/7/11",179000,136231,300468,615699],
+    ["2025/7/12",179000,137272,297606,613878],
+    ["2025/7/13",179000,137272,297606,613878],
+    ["2025/7/14",175700,137615,308159,621474],
+    ["2025/7/15",180800,137403,298351,616553],
+    ["2025/7/16",183800,142526,303366,629692],
+    ["2025/7/17",186300,143540,311777,641617],
+    ["2025/7/18",190200,144655,319328,654183],
+    ["2025/7/19",190200,144623,313199,648022],
+    ["2025/7/20",190200,144623,313199,648022],
+    ["2025/7/21",188800,144928,321657,655385],
+    ["2025/7/22",185400,144689,318210,648299],
+    ["2025/7/23",188600,140381,322963,651944],
+    ["2025/7/24",190500,143240,313541,647281],
+    ["2025/7/25",189500,145650,313723,648873],
+    ["2025/7/26",189500,145927,315846,651273],
+    ["2025/7/27",189500,145927,315846,651273],
+    ["2025/7/28",191400,146325,336696,674421],
+    ["2025/7/29",187500,150555,334552,672607],
+    ["2025/7/30",191100,148769,328861,668730],
+    ["2025/7/31",194900,152690,331450,679040],
+    ["2025/8/1",191400,151803,320860,664064],
+    ["2025/8/2",191400,143725,317269,652394],
+    ["2025/8/3",191400,143725,317269,652394],
+    ["2025/8/4",190000,144426,315043,649470],
+    ["2025/8/5",194400,149706,318537,662643],
+    ["2025/8/6",192100,148776,317664,658540],
+    ["2025/8/7",201300,150305,317079,668684],
+    ["2025/8/8",201000,152260,326854,680115],
+    ["2025/8/9",201000,154129,325957,681086],
+    ["2025/8/10",201000,154129,325957,681086],
+    ["2025/8/11",204200,154301,343280,701782],
+    ["2025/8/12",204800,154403,337898,697102],
+    ["2025/8/13",207000,155024,344310,706333],
+    ["2025/8/14",206500,154084,353831,714415],
+    ["2025/8/15",206800,155411,347856,710068],
+    ["2025/8/16",206800,153864,338295,698959],
+    ["2025/8/17",206800,153864,338295,698959],
+    ["2025/8/18",209200,153864,335239,698303],
+    ["2025/8/19",207200,155972,337634,700806],
+    ["2025/8/20",196500,150502,336326,683328],
+    ["2025/8/22",197800,149809,340187,687796],
+    ["2025/8/23",197800,153206,351863,702869],
+    ["2025/8/24",197800,153206,351863,702869],
+    ["2025/8/25",206400,153554,343714,703668],
+    ["2025/8/26",206000,155790,336040,697830],
+    ["2025/8/27",210000,158030,342223,710253],
+    ["2025/8/28",206200,157499,345894,709593],
+    ["2025/8/29",206400,156370,341197,703966],
+    ["2025/8/30",206400,150489,335709,692598],
+    ["2025/8/31",206400,150454,335709,692563],
+    ["2025/9/1",201300,150735,335348,687383],
+    ["2025/9/2",200900,150818,339810,691528],
+    ["2025/9/3",201600,147244,339092,687936],
+    ["2025/9/4",204000,147225,338257,689482],
+    ["2025/9/5",208700,149035,338123,695857],
+    ["2025/9/6",208700,144765,335602,689067],
+    ["2025/9/7",208700,144765,335602,689067],
+    ["2025/9/8",211700,144962,340369,697031],
+    ["2025/9/9",215300,145783,343183,704266],
+    ["2025/9/10",222600,147518,340260,710378],
+    ["2025/9/11",222600,152154,348593,723347],
+    ["2025/9/12",226600,152377,351558,730535],
+    ["2025/9/13",226600,154466,352288,733353],
+    ["2025/9/14",226600,154466,352288,733353],
+    ["2025/9/15",225000,154115,357053,736169],
+    ["2025/9/16",229900,154177,352438,736515],
+    ["2025/9/17",227200,152736,358554,738490],
+    ["2025/9/18",230900,148808,364257,743965],
+    ["2025/9/19",231600,153611,365563,750775],
+    ["2025/9/20",231600,154548,362440,748588],
+    ["2025/9/21",231600,154548,362440,748588],
+    ["2025/9/22",234700,154560,360398,749658],
+    ["2025/9/23",240600,160331,357601,758532],
+    ["2025/9/24",240800,154705,360903,756408],
+    ["2025/9/25",238900,154548,355870,749317],
+    ["2025/9/26",230400,154264,345776,730439],
+    ["2025/9/27",230400,155539,343996,729935],
+    ["2025/9/28",230400,155539,343996,729935],
+    ["2025/9/29",230400,155539,343996,729935],
+    ["2025/9/30",236200,159042,366031,761273],
+    ["2025/10/1",237500,162768,363689,763957],
+    ["2025/10/2",244000,0,0,0],
+    ["2025/10/3",249400,164275,387541,801216],
+    ["2025/10/4",249400,162275,402872,814547],
+    ["2025/10/5",249400,162275,405470,817145],
+    ["2025/10/6",249400,0,0,0],
+    ["2025/10/7",260400,162120,417435,839955],
+    ["2025/10/8",256900,161368,420866,839134],
+    ["2025/10/9",261100,165291,423293,849685],
+    ["2025/10/10",261100,168908,416594,846602],
+    ["2025/10/11",261100,157328,374231,792659],
+    ["2025/10/12",261100,157328,379388,797816],
+    ["2025/10/13",253500,157746,414826,826072],
+    ["2025/10/14",251000,164483,390593,806076],
+    ["2025/10/15",258800,154974,387153,800927],
+    ["2025/10/16",268300,155495,385744,809538],
+    ["2025/10/17",260400,156881,366689,783970],
+    ["2025/10/18",260400,158224,364307,782931],
+    ["2025/10/19",260400,158224,362644,781267],
+    ["2025/10/20",268000,157903,378146,804049],
+    ["2025/10/21",268900,158567,362770,790237],
+    ["2025/10/22",267500,158185,363594,789278],
+    ["2025/10/23",264100,156915,372252,793267],
+    ["2025/10/24",264100,159454,379897,803451],
+    ["2025/10/25",264100,162473,376010,802583],
+    ["2025/10/26",264100,162473,377129,803701],
+    ["2025/10/27",275900,162188,389864,827952],
+    ["2025/10/28",272600,167565,381841,822006],
+    ["2025/10/29",279800,176671,377284,833755],
+    ["2025/10/30",280000,183491,373402,836893],
+    ["2025/10/31",282300,176917,368747,827964],
+    ["2025/11/1",282300,180781,368816,831897],
+    ["2025/11/2",282300,180781,370017,833098],
+    ["2025/11/3",278700,181069,356186,815955],
+    ["2025/11/4",274400,187874,338674,800947],
+    ["2025/11/5",268600,178026,332049,778675],
+    ["2025/11/6",273500,175700,336389,785588],
+    ["2025/11/7",266000,167317,336258,769575],
+    ["2025/11/8",266000,166620,342294,774914],
+    ["2025/11/9",266000,166620,340954,773574],
+    ["2025/11/10",272500,166503,350862,789865],
+    ["2025/11/11",268100,177733,346171,792004],
+    ["2025/11/12",273100,172309,339399,784808],
+    ["2025/11/13",271500,171744,342044,785288],
+    ["2025/11/14",260200,163098,319824,743122],
+    ["2025/11/15",260200,162517,318255,740972],
+    ["2025/11/16",260200,162517,319544,742261],
+    ["2025/11/17",262200,165685,319957,747843],
+    ["2025/11/18",250400,162545,306535,719480],
+    ["2025/11/19",246900,155999,311647,714546],
+    ["2025/11/20",261600,160895,311193,733689],
+    ["2025/11/21",243900,155209,291805,690914],
+    ["2025/11/22",412888,312432,0,725319],
+    ["2025/11/23",412888,312432,0,725319],
+    ["2025/11/24",412900,313422,0,726322],
+    ["2025/11/25",422638,338837,0,761474],
+    ["2025/11/26",434362,336188,0,770550],
+    ["2025/11/27",439488,344345,0,783833],
+    ["2025/11/28",444600,343993,0,788593],
+    ["2025/11/29",444600,345375,0,789975],
+    ["2025/11/30",444600,345375,0,789975],
+    ["2025/12/1",433500,345832,0,779332],
+    ["2025/12/2",425295,348253,0,773548],
+    ["2025/12/3",431165,348942,0,780107],
+    ["2025/12/4",430988,360010,0,790997],
+    ["2025/12/5",436465,369987,0,806452],
+    ["2025/12/6",436465,370568,0,807033],
+    ["2025/12/7",436465,370568,0,807033],
+    ["2025/12/8",445878,347749,0,793627],
+    ["2025/12/9",443732,336323,0,780056],
+    ["2025/12/10",449350,340014,0,789364],
+    ["2025/12/11",439615,340726,0,780341],
+    ["2025/12/12",444700,335389,0,780089],
+    ["2025/12/13",444700,339385,0,784085],
+    ["2025/12/14",444700,339385,0,784085],
+    ["2025/12/15",434712,339032,0,773745],
+    ["2025/12/16",427408,352875,0,780283],
+    ["2025/12/17",425080,366838,0,791918],
+    ["2025/12/18",424005,341795,0,765800],
+    ["2025/12/19",430132,360436,0,790568],
+    ["2025/12/20",430132,362470,0,792603],
+    ["2025/12/21",430132,362470,0,792603],
+    ["2025/12/22",442018,362644,0,804661],
+    ["2025/12/23",445808,370296,0,816104],
+    ["2025/12/24",447275,369059,0,816334],
+    ["2025/12/25",447275,368986,0,816261],
+    ["2025/12/26",453720,369388,0,823108],
+    ["2025/12/27",453720,359707,0,813427],
+    ["2025/12/28",453720,359707,0,813427],
+    ["2025/12/29",461418,386784,0,848202],
+    ["2025/12/30",459772,374196,0,833969],
+    ["2025/12/31",464815,370954,0,835769],
+    ["2026/1/1",464815,364154,0,828969],
+    ["2026/1/2",478850,364061,0,842911],
+    ["2026/1/3",478850,355314,0,834164],
+    ["2026/1/4",478850,355314,0,834164],
+    ["2026/1/5",504228,381988,0,886215],
+    ["2026/1/6",515575,391310,0,906885],
+    ["2026/1/7",510210,386288,0,896498],
+    ["2026/1/8",510565,387565,0,898130],
+    ["2026/1/9",508990,386364,0,895354],
+    ["2026/1/10",508990,395553,0,904543],
+    ["2026/1/11",837820,395553,0,1233373],
+    ["2026/1/12",844710,396054,0,1240764],
+    ["2026/1/13",850315,400017,0,1250332],
+    ["2026/1/14",851940,397598,0,1249538],
+    ["2026/1/15",849245,386061,0,1235306],
+    ["2026/1/16",868860,387248,0,1256108],
+    ["2026/1/17",868860,389401,0,1258261],
+    ["2026/1/18",868860,389401,0,1258261],
+    ["2026/1/19",877095,388515,0,1265610],
+    ["2026/1/20",878665,389386,0,1268051],
+    ["2026/1/21",866540,367828,0,1234368],
+    ["2026/1/22",871080,375573,0,1246653],
+    ["2026/1/23",877430,384459,0,1261889],
+    ["2026/1/24",877430,383246,0,1260676],
+    ["2026/1/25",877430,383246,0,1260676],
+    ["2026/1/26",876140,384310,0,1260450],
+    ["2026/1/27",887840,379637,0,1267477],
+    ["2026/1/28",904330,381301,0,1285631],
+    ["2026/1/29",897900,381826,0,1279726],
+    ["2026/1/30",881885,374382,0,1256267],
+    ["2026/1/31",881885,379034,0,1260919],
+    ["2026/2/1",881885,379034,0,1260919],
+    ["2026/2/2",867150,379778,0,1246928],
+    ["2026/2/3",887045,376614,0,1263659],
+    ["2026/2/4",886475,368799,0,1255274],
+    ["2026/2/5",872900,353700,0,1226600],
+    ["2026/2/6",872410,343919,0,1216329],
+    ["2026/2/7",872410,357996,0,1230406],
+    ["2026/2/8",872410,357996,0,1230406],
+    ["2026/2/9",899135,357809,0,1256944],
+    ["2026/2/10",922270,365089,0,1287359],
+    ["2026/2/11",943710,364656,0,1308366],
+    ["2026/2/12",943710,366476,0,1310186],
+    ["2026/2/13",943710,352634,0,1296344],
+    ["2026/2/14",943710,349954,0,1293664],
+    ["2026/2/15",943710,349954,0,1293664],
+    ["2026/2/16",943710,349497,0,1293207],
+    ["2026/2/17",943710,350443,0,1294153],
+    ["2026/2/18",943710,349677,0,1293387],
+    ["2026/2/19",963500,471958,0,1435458],
+    ["2026/2/20",963500,454296,0,1417796],
+    ["2026/2/21",963500,454954,0,1418454],
+    ["2026/2/22",963500,454954,0,1418454],
+    ["2026/2/23",964000,453283,0,1417283],
+    ["2026/2/24",990500,440549,0,1431049],
+    ["2026/2/25",1012500,447640,0,1460140],
+    ["2026/2/26",1011000,456919,0,1467919],
+    ["2026/2/27",1011000,445259,0,1456259],
+    ["2026/2/28",1011000,439442,0,1450442],
+    ["2026/3/1",1011000,439442,0,1450442],
+    ["2026/3/2",1001000,441609,0,1442609],
+    ["2026/3/3",981000,443676,0,1424676],
+    ["2026/3/4",942500,433942,0,1376442],
+    ["2026/3/5",964000,448015,0,1412015],
+    ["2026/3/6",957500,450196,0,1407696],
+    ["2026/3/7",957500,440375,0,1397875],
+    ["2026/3/8",957500,440375,0,1397875],
+    ["2026/3/9",917000,440793,0,1357793],
+    ["2026/3/10",937000,447356,0,1384356],
+    ["2026/3/11",976000,445797,0,1421797],
+    ["2026/3/12",954500,454090,0,1408590],
+    ["2026/3/13",946000,440835,0,1386835],
+    ["2026/3/14",946000,435688,0,1381688],
+    ["2026/3/15",946000,435688,0,1381688],
+    ["2026/3/16",940500,433542,0,1374042],
+    ["2026/3/17",953500,439213,0,1392713],
+    ["2026/3/18",968500,440746,0,1409246],
+    ["2026/3/19",945000,432357,0,1377357],
+    ["2026/3/20",943000,422682,0,1365682],
+    ["2026/3/21",943000,407976,0,1350976],
+    ["2026/3/22",943000,407976,0,1350976],
+    ["2026/3/23",923500,408982,0,1332482],
+    ["2026/3/24",925000,423101,0,1348101],
+    ["2026/3/25",946500,421164,0,1367664],
+    ["2026/3/26",942000,424671,0,1366671],
+    ["2026/3/27",932000,407253,0,1339253],
+    ["2026/3/28",932000,394122,0,1326122],
+    ["2026/3/29",932000,394122,0,1326122],
+    ["2026/3/30",917000,393103,0,1310103],
+    ["2026/3/31",899500,387571,0,1287071],
+    ["2026/4/1",940000,407211,0,1347211],
+    ["2026/4/2",920500,417096,0,1337596],
+    ["2026/4/3",1211300,434583,0,1645883],
+    ["2026/4/4",1211300,435066,0,1646366],
+    ["2026/4/5",1211300,435066,0,1646366],
+    ["2026/4/6",1211300,435546,0,1646846],
+    ["2026/4/7",1237950,430280,0,1668230],
+    ["2026/4/8",1300750,427718,0,1728468],
+    ["2026/4/9",1299450,437293,0,1736743],
+    ["2026/4/10",1331350,442768,0,1774118],
+    ["2026/4/11",1331350,450666,0,1782016],
+    ["2026/4/12",1331350,450666,0,1782016],
+    ["2026/4/13",1326300,451500,0,1777800],
+    ["2026/4/14",1356450,456237,0,1812687],
+    ["2026/4/15",1371500,471832,0,1843332],
+    ["2026/4/16",1384250,497502,0,1881752],
+    ["2026/4/17",1379950,497377,0,1877327],
+    ["2026/4/18",1379950,510654,0,1890604],
+    ["2026/4/19",1379950,510654,0,1890604],
+    ["2026/4/20",1390700,511043,0,1901743],
+    ["2026/4/21",1407200,500337,0,1907537],
+    ["2026/4/22",1408400,495554,0,1903954],
+    ["2026/4/23",1402300,507585,0,1909885],
+    ["2026/4/24",1453200,493498,0,1946698],
+    ["2026/4/25",1453200,502865,0,1956065],
+    ["2026/4/26",1453200,502865,0,1956065],
+    ["2026/4/27",1492650,502179,0,1994829],
+    ["2026/4/28",1479550,508199,0,1987749],
+    ["2026/4/29",1463050,497915,0,1960965],
+    ["2026/4/30",1457800,498761,0,1956561],
+    ["2026/5/1",1457800,504649,0,1962449],
+  ]
+};
+
+// 匯率狀態
+let usdtwd = 31.48;
+let currency = 'TWD';
+
+// localStorage 持久化
+const STORAGE_KEY = 'dashboard_v1';
+
+// 交易記錄
+const LEDGER_KEY = 'dashboard_ledger_v1';
+let transactions = [];
+
+function saveLedger() {
+  localStorage.setItem(LEDGER_KEY, JSON.stringify(transactions));
+}
+
+function loadLedger() {
+  try {
+    const raw = localStorage.getItem(LEDGER_KEY);
+    if (raw) transactions = JSON.parse(raw);
+  } catch(e) { transactions = []; }
+}
+
+function saveStorage() {
+  const payload = {
+    cashTWD: RAW.summary.cashTWD,
+    cashUSD: RAW.summary.cashUSD,
+    loan: RAW.summary.loan,
+    twHoldings: RAW.twHoldings.filter(h => !h.isTotal).map(h => ({
+      code: h.code, name: h.name, shares: h.shares, avgPrice: h.avgPrice,
+      ...(h.leverage && h.leverage !== 1 ? { leverage: h.leverage } : {})
+    })),
+    usHoldings: RAW.usHoldings.filter(h => !h.isTotal).map(h => ({
+      code: h.code, name: h.name, shares: h.shares, avgPrice: h.avgPrice,
+      ...(h.leverage && h.leverage !== 1 ? { leverage: h.leverage } : {})
+    })),
+    cryptoHoldings: RAW.cryptoHoldings.filter(h => !h.isTotal).map(h => ({
+      code: h.code, name: h.name, shares: h.shares, avgPrice: h.avgPrice
+    })),
+  };
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
+}
+
+function loadStorage() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return;
+    const d = JSON.parse(raw);
+    // 向後相容舊 cash 欄位
+    if (d.cashTWD != null) RAW.summary.cashTWD = d.cashTWD;
+    else if (d.cash != null) RAW.summary.cashTWD = d.cash;
+    if (d.cashUSD != null) RAW.summary.cashUSD = d.cashUSD;
+    if (d.loan != null) RAW.summary.loan = d.loan;
+    const toHoldings = (arr) => [
+      ...arr.map(h => ({ ...h, price: null, pnl: 0, pnlPct: 0 })),
+      { code: '總和', shares: null, avgPrice: null, price: null, pnl: 0, pnlPct: 0, isTotal: true }
+    ];
+    if (d.twHoldings?.length)     RAW.twHoldings     = toHoldings(d.twHoldings);
+    if (d.usHoldings?.length)     RAW.usHoldings     = toHoldings(d.usHoldings);
+    if (d.cryptoHoldings?.length) RAW.cryptoHoldings = toHoldings(d.cryptoHoldings);
+  } catch(e) { console.warn('loadStorage failed', e); }
+}
+
+// 自動抓匯率（使用免費 API）
+async function fetchRate() {
+  try {
+    const res = await fetch('https://open.er-api.com/v6/latest/USD');
+    const data = await res.json();
+    if (data && data.rates && data.rates.TWD) {
+      usdtwd = data.rates.TWD;
+      document.getElementById('rate-status').textContent = `USD/TWD: ${usdtwd.toFixed(2)}`;
+    }
+  } catch(e) {
+    document.getElementById('rate-status').textContent = `USD/TWD: ${usdtwd.toFixed(2)} (離線)`;
+  }
+}
+
+function convert(twd) {
+  return currency === 'TWD' ? twd : twd / usdtwd;
+}
+
+function fmtVal(twd) {
+  const v = convert(twd);
+  const prefix = currency === 'TWD' ? 'NT$' : 'US$';
+  return prefix + Math.round(v).toLocaleString();
+}
+
+// 各持倉卡片獨立幣別：tw 固定 TWD，us/crypto 預設 USD 可切換
+const holdingCurrency = { tw: 'TWD', us: 'USD', crypto: 'USD' };
+
+function toggleHoldingCurrency(type) {
+  holdingCurrency[type] = holdingCurrency[type] === 'TWD' ? 'USD' : 'TWD';
+  const cur = holdingCurrency[type];
+  const btn = document.getElementById('cur-btn-' + type);
+  const badge = document.getElementById('badge-' + type);
+  if (btn) { btn.textContent = cur; btn.classList.toggle('active', cur === 'TWD'); }
+  if (badge) badge.textContent = cur;
+  renderHoldings(null);
+}
+
+function toggleCurrency() {
+  currency = currency === 'TWD' ? 'USD' : 'TWD';
+  document.getElementById('currency-btn').textContent = currency;
+  renderAll();
+}
+
+function renderAll() {
+  renderCards();
+  renderHoldings({ tw: null, us: null, crypto: null });
+  renderMonitor();
+}
+
+function buildBreakdown(type) {
+  const data = type === 'tw' ? RAW.twHoldings : type === 'crypto' ? RAW.cryptoHoldings : RAW.usHoldings;
+  const isTW = type === 'tw';
+  const rows = data.filter(function(h) { return !h.isTotal && h.price != null; });
+  if (!rows.length) return '<div style="font-size:11px;color:#4a5568;padding:4px 0">尚無資料</div>';
+  const total = rows.reduce(function(s, h) { return s + h.price * h.shares * (isTW ? 1 : usdtwd); }, 0);
+  return rows.map(function(h) {
+    const val = h.price * h.shares * (isTW ? 1 : usdtwd);
+    const pct = total > 0 ? val / total * 100 : 0;
+    const pctStr = pct.toFixed(1);
+    const label = h.name ? (h.code + ' ' + h.name) : h.code;
+    const barColor = type === 'tw' ? '#f59e0b' : type === 'us' ? '#3b82f6' : '#22c55e';
+    return '<div style="padding:4px 0">'
+      + '<div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:2px">'
+      + '<span style="color:#9aa3b2;font-weight:500">' + label + '</span>'
+      + '<span style="color:#c8d0e0;font-weight:600">' + fmtVal(val) + ' <span style="color:#4a5568;font-weight:400">' + pctStr + '%</span></span>'
+      + '</div>'
+      + '<div style="background:#f0f0f0;border-radius:3px;height:4px">'
+      + '<div style="background:' + barColor + ';width:' + pctStr + '%;height:4px;border-radius:3px"></div>'
+      + '</div>'
+      + '</div>';
+  }).join('');
+}
+
+function toggleBreakdown(type) {
+  const el = document.getElementById(`breakdown-${type}`);
+  if (el) el.style.display = el.style.display === 'none' ? 'block' : 'none';
+}
+
+function renderCards() {
+  const d = RAW.summary;
+  document.getElementById('total-assets').textContent = fmtVal(d.totalAssets);
+  document.getElementById('total-cost').textContent = '投入成本：' + fmtVal(d.totalCost);
+
+  const pnlEl = document.getElementById('unrealized-pnl');
+  pnlEl.textContent = (d.unrealizedPnl >= 0 ? '+' : '') + fmtVal(d.unrealizedPnl);
+  pnlEl.className = 'card-value ' + (d.unrealizedPnl >= 0 ? 'positive' : 'negative');
+  document.getElementById('unrealized-pct').textContent = '報酬率：' + (d.unrealizedPnl >= 0 ? '+' : '') + d.unrealizedPct + '%';
+
+  document.getElementById('net-assets').textContent = fmtVal(d.netAssets);
+  // 台幣現金直接顯示 TWD
+  document.getElementById('cash-twd-val').textContent = 'NT$' + d.cashTWD.toLocaleString();
+  // 美元現金：依幣別顯示
+  document.getElementById('cash-usd-val').textContent = currency === 'TWD'
+    ? 'NT$' + Math.round(d.cashUSD * usdtwd).toLocaleString() + ` (US$${d.cashUSD.toLocaleString(undefined,{minimumFractionDigits:0,maximumFractionDigits:2})})`
+    : 'US$' + d.cashUSD.toLocaleString(undefined,{minimumFractionDigits:0,maximumFractionDigits:2});
+  document.getElementById('loan-val').textContent = fmtVal(d.loan);
+
+  // 保留展開狀態
+  const twOpen     = document.getElementById('breakdown-tw')?.style.display === 'block';
+  const usOpen     = document.getElementById('breakdown-us')?.style.display === 'block';
+  const cryptoOpen = document.getElementById('breakdown-crypto')?.style.display === 'block';
+
+  document.getElementById('platform-list').innerHTML = `
+    <div class="platform-item" style="cursor:pointer" onclick="toggleBreakdown('tw')">
+      <span class="name">台股 <span style="color:#3a4458;font-size:10px">▾</span></span><span class="val">${fmtVal(d.twStock)}</span>
+    </div>
+    <div id="breakdown-tw" style="display:${twOpen ? 'block' : 'none'};margin-bottom:4px">${buildBreakdown('tw')}</div>
+    <div class="platform-item" style="cursor:pointer" onclick="toggleBreakdown('us')">
+      <span class="name">美股 <span style="color:#3a4458;font-size:10px">▾</span></span><span class="val">${fmtVal(d.usStock)}</span>
+    </div>
+    <div id="breakdown-us" style="display:${usOpen ? 'block' : 'none'};margin-bottom:4px">${buildBreakdown('us')}</div>
+    <div class="platform-item" style="cursor:pointer" onclick="toggleBreakdown('crypto')">
+      <span class="name">加密貨幣 <span style="color:#3a4458;font-size:10px">▾</span></span><span class="val">${fmtVal(d.crypto)}</span>
+    </div>
+    <div id="breakdown-crypto" style="display:${cryptoOpen ? 'block' : 'none'};margin-bottom:4px">${buildBreakdown('crypto')}</div>
+  `;
+
+}
+
+// 各類持倉最後已知更新時間（只在價格真正變動才更新）
+const _lastHoldingTimes = { tw: null, us: null, crypto: null };
+const _lastHoldingPrices = { tw: {}, us: {}, crypto: {} };
+
+function renderHoldings(marketTimes) {
+  // marketTimes: { tw: Date|null, us: Date|null, crypto: Date|null } 或 null（初始化）
+  const fmt = (n, dec=0) => n != null ? n.toLocaleString(undefined, { minimumFractionDigits: dec, maximumFractionDigits: dec }) : '—';
+  const fmtT = t => t.toLocaleString('zh-TW', { month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit' });
+
+  function buildRows(data, tbodyId, updateId, typeKey) {
+    const el = document.getElementById(tbodyId);
+    const isCrypto = typeKey === 'crypto';
+    const sorted = getSortedHoldings(data, typeKey);
+    const isTW = typeKey === 'tw';
+    // 各卡片獨立幣別
+    const cardCur = holdingCurrency[typeKey];  // 'TWD' or 'USD'
+    const showTWD = cardCur === 'TWD';
+    // 原始幣別：台股=TWD，美股/加密=USD
+    const nativeUSD = !isTW;
+
+    const nonTotal = sorted.filter(h => !h.isTotal && h.price != null);
+    // 總現值（以 TWD 計算，供佔比用）
+    const totalValTWD = nonTotal.reduce((s, h) => s + h.price * h.shares * (isTW ? 1 : usdtwd), 0);
+
+    // 顯示價格的前綴
+    const prefix = showTWD ? 'NT$' : 'US$';
+    // 損益轉換係數（美股損益原始為 USD）
+    const pnlRate = nativeUSD ? (showTWD ? usdtwd : 1) : 1;
+    // 現值轉換：mktValTWD → 顯示值
+    const mktRate = showTWD ? 1 : (1 / usdtwd);
+
+    // 加總現值與損益（for isTotal row，用顯示幣別）
+    const sumMktVal = totalValTWD * mktRate;
+    const sumPnlRaw = nonTotal.reduce((s, h) => s + (h.pnl || 0), 0);
+    const sumPnl = sumPnlRaw * pnlRate;
+
+    const barColor = isTW ? '#fbbf24' : typeKey === 'us' ? '#4a9eff' : '#a78bfa';
+
+    el.innerHTML = sorted.map(h => {
+      if (h.isTotal) {
+        const mktValStr = sumMktVal > 0 ? (prefix + Math.round(sumMktVal).toLocaleString()) : '—';
+        const pnlStr = nonTotal.length > 0 ? ((sumPnl >= 0 ? '+' : '') + Math.round(sumPnl).toLocaleString()) : '—';
+        const pnlCls = sumPnl >= 0 ? 'pos' : 'neg';
+        return `<tr>
+          <td>總和</td><td>—</td><td>—</td><td>—</td>
+          <td style="font-weight:700">${mktValStr}</td>
+          <td class="${pnlCls}" style="font-weight:700">${pnlStr}</td>
+          <td>—</td>
+        </tr>`;
+      }
+      const nameHtml = h.name ? `<div style="font-size:11px;color:#4a5568;font-weight:400">${h.name}</div>` : '';
+      const sharesDisplay = h.shares != null ? fmt(h.shares, (isCrypto && h.shares % 1 !== 0) ? 4 : 0) : '—';
+
+      // 均價、現價：台股直接顯示 TWD；美股/加密依卡片幣別換算
+      const avgRaw = h.avgPrice;
+      const priceRaw = h.price;
+      let avgDisplay = '—', priceDisplay = '—';
+      if (avgRaw != null) {
+        const v = nativeUSD && showTWD ? avgRaw * usdtwd : nativeUSD && !showTWD ? avgRaw : avgRaw;
+        avgDisplay = fmt(v, v < 10 ? 4 : 2);
+      }
+      if (priceRaw != null) {
+        const v = nativeUSD && showTWD ? priceRaw * usdtwd : priceRaw;
+        priceDisplay = fmt(v, v < 10 ? 4 : 2);
+      }
+
+      let mktValDisplay = '—';
+      if (priceRaw != null && h.shares != null) {
+        const mktValTWD = priceRaw * h.shares * (isTW ? 1 : usdtwd);
+        const displayVal = mktValTWD * mktRate;
+        const pct = totalValTWD > 0 ? (mktValTWD / totalValTWD * 100) : 0;
+        mktValDisplay = prefix + Math.round(displayVal).toLocaleString()
+          + `<div style="display:flex;align-items:center;gap:4px;margin-top:2px">`
+          + `<div style="flex:1;background:#1e2230;border-radius:2px;height:3px"><div style="background:${barColor};width:${Math.min(pct,100).toFixed(1)}%;height:3px;border-radius:2px"></div></div>`
+          + `<span style="font-size:10px;color:#4a5568;white-space:nowrap">${pct.toFixed(1)}%</span>`
+          + `</div>`;
+      }
+
+      const pnlDisplay = Math.round((h.pnl || 0) * pnlRate);
+      const pnlStr = (pnlDisplay >= 0 ? '+' : '') + pnlDisplay.toLocaleString();
+      const pnlCls = pnlDisplay >= 0 ? 'pos' : 'neg';
+
+      return `<tr>
+        <td>${h.code}${nameHtml}</td>
+        <td>${sharesDisplay}</td>
+        <td>${avgDisplay}</td>
+        <td>${priceDisplay}</td>
+        <td>${mktValDisplay}</td>
+        <td class="${pnlCls}">${pnlStr}</td>
+        <td class="${h.pnlPct >= 0 ? 'pos' : 'neg'}">${h.pnlPct >= 0 ? '+' : ''}${fmt(h.pnlPct, 2)}%</td>
+      </tr>`;
+    }).join('');
+
+    // 只在該類有傳入新時間時才更新時間戳
+    if (marketTimes && marketTimes[typeKey]) {
+      document.getElementById(updateId).textContent = fmtT(marketTimes[typeKey]);
+    }
+  }
+  buildRows(RAW.twHoldings,     'tw-holdings',     'tw-update',     'tw');
+  buildRows(RAW.usHoldings,     'us-holdings',     'us-update',     'us');
+  buildRows(RAW.cryptoHoldings, 'crypto-holdings', 'crypto-update', 'crypto');
+}
+
+// 排序狀態：{ col: number, asc: boolean }，null = 預設順序
+const sortState = { tw: null, us: null, crypto: null };
+
+function sortHoldings(type, col) {
+  const cur = sortState[type];
+  // 同欄：升 → 降 → 恢復原樣（null）
+  if (cur && cur.col === col) {
+    sortState[type] = cur.asc ? { col, asc: false } : null;
+  } else {
+    sortState[type] = { col, asc: true };
+  }
+  // 更新 th 樣式
+  ['tw','us','crypto'].forEach(t => {
+    [0,1,2,3,4,5,6].forEach(c => {
+      const th = document.getElementById(`th-${t}-${c}`);
+      if (!th) return;
+      th.classList.remove('sort-asc','sort-desc');
+    });
+  });
+  const s = sortState[type];
+  if (s) {
+    const activeTh = document.getElementById(`th-${type}-${col}`);
+    if (activeTh) activeTh.classList.add(s.asc ? 'sort-asc' : 'sort-desc');
+  }
+  renderHoldings({ tw: null, us: null, crypto: null });
+}
+
+function getSortedHoldings(data, type) {
+  const s = sortState[type];
+  if (!s) return data;
+  const nonTotal = data.filter(h => !h.isTotal);
+  const total    = data.filter(h => h.isTotal);
+  const isTW = type === 'tw';
+  const sorted = [...nonTotal].sort((a, b) => {
+    let va, vb;
+    switch(s.col) {
+      case 0: va = a.code; vb = b.code; break;
+      case 1: va = a.shares ?? 0; vb = b.shares ?? 0; break;
+      case 2: va = a.avgPrice ?? 0; vb = b.avgPrice ?? 0; break;
+      case 3: va = a.price ?? 0; vb = b.price ?? 0; break;
+      case 4: va = (a.price??0)*a.shares*(isTW?1:usdtwd); vb = (b.price??0)*b.shares*(isTW?1:usdtwd); break;
+      case 5: va = a.pnl ?? 0; vb = b.pnl ?? 0; break;
+      case 6: va = a.pnlPct ?? 0; vb = b.pnlPct ?? 0; break;
+      default: return 0;
+    }
+    if (typeof va === 'string') return s.asc ? va.localeCompare(vb) : vb.localeCompare(va);
+    return s.asc ? va - vb : vb - va;
+  });
+  return [...sorted, ...total];
+}
+
+let editType = null;
+let editIsNew = false;  // 是否在新增模式
+
+function openEditModal(type) {
+  editType = type;
+  editIsNew = false;
+  const target = type === 'tw' ? RAW.twHoldings : type === 'crypto' ? RAW.cryptoHoldings : RAW.usHoldings;
+  const label = type === 'tw' ? '台股' : type === 'crypto' ? '加密貨幣' : '美股';
+  document.getElementById('edit-modal-title').textContent = `編輯${label}持倉`;
+  const sel = document.getElementById('e-select');
+  sel.innerHTML = target.filter(h => !h.isTotal).map((h, i) => `<option value="${i}">${h.code}${h.name ? ' ' + h.name : ''}</option>`).join('');
+  document.getElementById('e-new-row').style.display = 'none';
+  document.getElementById('e-delete-btn').style.display = '';
+  loadEditFields();
+  document.getElementById('edit-modal').classList.add('open');
+}
+
+function switchEditToNew() {
+  editIsNew = true;
+  document.getElementById('e-new-row').style.display = '';
+  document.getElementById('e-new-code').value = '';
+  document.getElementById('e-delete-btn').style.display = 'none';
+  document.getElementById('e-name').value = '';
+  document.getElementById('e-shares').value = '';
+  document.getElementById('e-avg').value = '';
+  document.getElementById('e-price').value = '';
+  document.getElementById('e-leverage').value = '1';
+  document.getElementById('e-new-code').focus();
+}
+
+function loadEditFields() {
+  if (editIsNew) return;
+  const target = editType === 'tw' ? RAW.twHoldings : editType === 'crypto' ? RAW.cryptoHoldings : RAW.usHoldings;
+  const nonTotal = target.filter(h => !h.isTotal);
+  const idx = parseInt(document.getElementById('e-select').value);
+  const h = nonTotal[idx];
+  if (!h) return;
+  document.getElementById('e-name').value = h.name || '';
+  document.getElementById('e-shares').value = h.shares;
+  document.getElementById('e-avg').value = h.avgPrice;
+  document.getElementById('e-price').value = h.price || '';
+  document.getElementById('e-leverage').value = h.leverage || 1;
+}
+
+function saveEditHolding() {
+  const target = editType === 'tw' ? RAW.twHoldings : editType === 'crypto' ? RAW.cryptoHoldings : RAW.usHoldings;
+
+  if (editIsNew) {
+    const code = document.getElementById('e-new-code').value.trim().toUpperCase();
+    if (!code) { document.getElementById('e-new-code').focus(); return; }
+    const existing = target.find(h => !h.isTotal && h.code === code);
+    if (existing) { alert(`${code} 已存在，請直接選取編輯`); return; }
+    const name     = document.getElementById('e-name').value.trim();
+    const shares   = parseFloat(document.getElementById('e-shares').value) || 0;
+    const avgPrice = parseFloat(document.getElementById('e-avg').value) || 0;
+    const price    = parseFloat(document.getElementById('e-price').value) || null;
+    const leverage = parseFloat(document.getElementById('e-leverage').value) || 1;
+    const pnl      = price != null ? parseFloat(((price - avgPrice) * shares).toFixed(2)) : 0;
+    const pnlPct   = price != null && avgPrice > 0 ? parseFloat(((price - avgPrice) / avgPrice * 100).toFixed(2)) : 0;
+    const newEntry = { code, name, shares, avgPrice, price, pnl, pnlPct, ...(leverage !== 1 && { leverage }) };
+    const totalIdx = target.findIndex(h => h.isTotal);
+    if (totalIdx >= 0) target.splice(totalIdx, 0, newEntry);
+    else target.push(newEntry);
+  } else {
+    const nonTotal = target.filter(h => !h.isTotal);
+    const idx = parseInt(document.getElementById('e-select').value);
+    const h = nonTotal[idx];
+    if (!h) return;
+    h.name     = document.getElementById('e-name').value.trim();
+    h.shares   = parseFloat(document.getElementById('e-shares').value) || 0;
+    h.avgPrice = parseFloat(document.getElementById('e-avg').value) || 0;
+    h.price    = parseFloat(document.getElementById('e-price').value) || h.price;
+    h.leverage = parseFloat(document.getElementById('e-leverage').value) || 1;
+    h.pnl      = parseFloat(((h.price - h.avgPrice) * h.shares).toFixed(2));
+    h.pnlPct   = h.avgPrice > 0 ? parseFloat(((h.price - h.avgPrice) / h.avgPrice * 100).toFixed(2)) : 0;
+  }
+
+  closeEditModal();
+  renderHoldings({ tw: null, us: null, crypto: null });
+  recalcSummary();
+  saveStorage();
+}
+
+function deleteHolding() {
+  const target = editType === 'tw' ? RAW.twHoldings : editType === 'crypto' ? RAW.cryptoHoldings : RAW.usHoldings;
+  const nonTotal = target.filter(h => !h.isTotal);
+  const idx = parseInt(document.getElementById('e-select').value);
+  const h = nonTotal[idx];
+  if (!h || !confirm(`確定刪除 ${h.code}？`)) return;
+  const realIdx = target.indexOf(h);
+  target.splice(realIdx, 1);
+  closeEditModal();
+  renderHoldings({ tw: null, us: null, crypto: null });
+  recalcSummary();
+  saveStorage();
+}
+
+function closeEditModal() {
+  document.getElementById('edit-modal').classList.remove('open');
+  editIsNew = false;
+}
+
+document.getElementById('edit-modal').addEventListener('click', e => {
+  if (e.target === document.getElementById('edit-modal')) closeEditModal();
+});
+
+function renderMonitor() {
+  const d = RAW.summary;
+  const items = [
+    { label: '風控狀態', value: d.riskStatus, cls: 'ok' },
+    { label: '槓桿率', value: d.leverageRate + '%', cls: d.leverageRate > 200 ? 'danger' : d.leverageRate > 150 ? 'warn' : 'ok' },
+    { label: '有效曝險槓桿', value: d.effectiveLeverage + '%', cls: d.effectiveLeverage > 200 ? 'warn' : 'ok' },
+  ];
+  document.getElementById('monitor-grid').innerHTML = items.map(i => `
+    <div class="monitor-item">
+      <div class="monitor-label">${i.label}</div>
+      <div class="monitor-value ${i.cls}">${i.value}</div>
+    </div>
+  `).join('');
+}
+
+// ── 每日自動記錄淨值到 localStorage ──────────────────────────────
+const HISTORY_KEY = 'dashboard_history_v1';
+
+function loadHistory() {
+  try {
+    const raw = localStorage.getItem(HISTORY_KEY);
+    if (!raw) return [];
+    return JSON.parse(raw); // [[日期, 台股, 美股, 加密, 合計], ...]
+  } catch(e) { return []; }
+}
+
+function saveHistory(rows) {
+  localStorage.setItem(HISTORY_KEY, JSON.stringify(rows));
+}
+
+function todayStr() {
+  const d = new Date();
+  return `${d.getFullYear()}/${d.getMonth()+1}/${d.getDate()}`;
+}
+
+// 在股價抓完後呼叫，每天只記一次
+function autoRecordToday() {
+  const d = RAW.summary;
+  // 必須有真實股價才記錄（totalAssets > 0）
+  if (!d.totalAssets) return;
+  const rows = loadHistory();
+  const today = todayStr();
+  const idx = rows.findIndex(r => r[0] === today);
+  const entry = [today, Math.round(d.twStock), Math.round(d.usStock), Math.round(d.crypto), Math.round(d.totalAssets - totalCashTWD())];
+  if (idx >= 0) {
+    rows[idx] = entry; // 同天更新（取最後一次股價）
+  } else {
+    rows.push(entry);
+    rows.sort((a, b) => new Date(a[0].replace(/\//g,'-')) - new Date(b[0].replace(/\//g,'-')));
+  }
+  saveHistory(rows);
+}
+
+// 合併 HTML 硬編碼的種子 history 與 localStorage 的記錄，localStorage 優先
+function getMergedHistory() {
+  const stored = loadHistory();
+  const storedDates = new Set(stored.map(r => r[0]));
+  // 把種子裡沒被 localStorage 覆蓋的筆數保留
+  const seed = RAW.history.filter(r => !storedDates.has(r[0]));
+  const merged = [...seed, ...stored];
+  merged.sort((a, b) => new Date(a[0].replace(/\//g,'-')) - new Date(b[0].replace(/\//g,'-')));
+  return merged;
+}
+
+// 趨勢圖
+let trendChart;
+let chartRange = '1y';
+let chartAsset = 'all';
+
+function buildChart(range, asset) {
+  range = range || chartRange;
+  asset = asset || chartAsset;
+  chartRange = range; chartAsset = asset;
+
+  let data = getMergedHistory();
+  const now = new Date();
+  if (range === 'ytd') {
+    const cutoff = new Date(now.getFullYear(), 0, 1);
+    data = data.filter(r => new Date(r[0].replace(/\//g,'-')) >= cutoff);
+  } else if (range !== 'all') {
+    const months = { '1m': 1, '3m': 3, '6m': 6, '1y': 12 }[range];
+    const cutoff = new Date(now);
+    cutoff.setMonth(cutoff.getMonth() - months);
+    data = data.filter(r => new Date(r[0].replace(/\//g,'-')) >= cutoff);
+  }
+
+  const divisor = currency === 'USD' ? usdtwd : 1;
+  const labels = data.map(r => r[0]);
+
+  const allSeries = {
+    all:    { label: '合計',   col: [4], color: '#4a9eff', bg: 'rgba(74,158,255,0.08)' },
+    tw:     { label: '台股',   col: [1], color: '#fbbf24', bg: 'rgba(251,191,36,0.08)' },
+    us:     { label: '美股',   col: [2], color: '#4a9eff', bg: 'rgba(74,158,255,0.08)' },
+    crypto: { label: '加密貨幣', col: [3], color: '#a78bfa', bg: 'rgba(167,139,250,0.08)' },
+  };
+
+  let datasets;
+  if (asset === 'all') {
+    datasets = [
+      { label: '合計',   data: data.map(r => r[4]/divisor), borderColor: '#4a9eff', backgroundColor: 'rgba(74,158,255,0.10)', fill: true,  tension: 0.4, pointRadius: 0, pointHoverRadius: 5, borderWidth: 2 },
+      { label: '台股',   data: data.map(r => r[1]/divisor), borderColor: '#fbbf24', fill: false, tension: 0.4, pointRadius: 0, pointHoverRadius: 4, borderWidth: 1.5, borderDash: [4,3] },
+      { label: '美股',   data: data.map(r => r[2]/divisor), borderColor: '#3dd68c', fill: false, tension: 0.4, pointRadius: 0, pointHoverRadius: 4, borderWidth: 1.5, borderDash: [4,3] },
+      { label: '加密貨幣', data: data.map(r => r[3]/divisor), borderColor: '#a78bfa', fill: false, tension: 0.4, pointRadius: 0, pointHoverRadius: 4, borderWidth: 1.5, borderDash: [4,3] },
+    ];
+  } else {
+    const s = allSeries[asset];
+    datasets = [{ label: s.label, data: data.map(r => r[s.col[0]]/divisor), borderColor: s.color, backgroundColor: s.bg, fill: true, tension: 0.4, pointRadius: 0, pointHoverRadius: 5, borderWidth: 2 }];
+  }
+
+  if (trendChart) trendChart.destroy();
+  const ctx = document.getElementById('trendChart').getContext('2d');
+  trendChart = new Chart(ctx, {
+    type: 'line',
+    data: { labels, datasets },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            title: items => items[0]?.label || '',
+            label: ctx => {
+              const prefix = currency === 'TWD' ? 'NT$' : 'US$';
+              const v = Math.round(ctx.parsed.y);
+              return `  ${ctx.dataset.label}  ${prefix}${v.toLocaleString()}`;
+            }
+          },
+          backgroundColor: '#1e2230',
+          borderColor: '#2e3342',
+          borderWidth: 1,
+          titleColor: '#5a6780',
+          titleFont: { size: 12 },
+          bodyColor: '#e2e8f0',
+          bodyFont: { size: 13 },
+          padding: 14,
+          bodySpacing: 6,
+          cornerRadius: 8,
+          displayColors: true,
+          boxWidth: 8,
+          boxHeight: 8,
+        }
+      },
+      scales: {
+        x: { grid: { display: false }, ticks: { maxTicksLimit: 8, font: { size: 11 }, color: '#4a5568' } },
+        y: {
+          grid: { color: '#1e2230' },
+          ticks: {
+            font: { size: 11 },
+            color: '#4a5568',
+            callback: v => {
+              const prefix = currency === 'TWD' ? '' : '$';
+              if (v >= 1000000) return prefix + (v/1000000).toFixed(1) + 'M';
+              if (v >= 1000) return prefix + (v/1000).toFixed(0) + 'K';
+              return prefix + v;
+            }
+          }
+        }
+      }
+    }
+  });
+
+  // 自定義 HTML legend
+  const legendEl = document.getElementById('chart-legend');
+  if (legendEl) {
+    legendEl.innerHTML = trendChart.data.datasets.map((ds, i) => {
+      const isDashed = ds.borderDash && ds.borderDash.length;
+      const lineStyle = isDashed
+        ? `border-top: 2px dashed ${ds.borderColor};`
+        : `border-top: 2px solid ${ds.borderColor};`;
+      return `<div style="display:flex;align-items:center;gap:6px;cursor:pointer;opacity:1" onclick="toggleDataset(${i})" id="legend-item-${i}">
+        <span style="display:inline-block;width:24px;height:0;${lineStyle}border-radius:1px"></span>
+        <span style="font-size:12px;color:#7a8499;white-space:nowrap">${ds.label}</span>
+      </div>`;
+    }).join('');
+  }
+}
+
+function toggleDataset(index) {
+  if (!trendChart) return;
+  const meta = trendChart.getDatasetMeta(index);
+  meta.hidden = !meta.hidden;
+  trendChart.update();
+  const item = document.getElementById('legend-item-' + index);
+  if (item) item.style.opacity = meta.hidden ? '0.35' : '1';
+}
+
+function setRange(range, btn) {
+  document.querySelectorAll('#range-filters .filter-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  buildChart(range, chartAsset);
+}
+
+function setAsset(asset, btn) {
+  document.querySelectorAll('#asset-filters .filter-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  buildChart(chartRange, asset);
+}
+
+// 抓股價（透過本機 proxy server）
+async function fetchUSPrice(symbol) {
+  try {
+    const res = await fetch(`http://localhost:3100/${symbol}`);
+    const data = await res.json();
+    const meta = data.chart.result[0].meta;
+    const isTW = symbol.endsWith('.TW');
+    const code = isTW ? symbol.replace('.TW', '') : symbol;
+    const name = isTW ? (TW_NAMES[code] || meta.shortName || code) : (meta.shortName || meta.longName || symbol);
+    const prevClose = meta.chartPreviousClose || meta.previousClose || meta.regularMarketPrice;
+    const change = meta.regularMarketPrice - prevClose;
+    const changePct = prevClose ? (change / prevClose * 100) : 0;
+    const marketTime = meta.regularMarketTime ? new Date(meta.regularMarketTime * 1000) : null;
+    return { price: meta.regularMarketPrice, name, change, changePct, marketTime };
+  } catch { return null; }
+}
+
+// 大盤指數抓取與渲染
+const INDICES = [
+  { symbol: '^TWII',  label: '台股加權' },
+  { symbol: '^GSPC',  label: 'S&P 500' },
+  { symbol: '^IXIC',  label: 'NASDAQ' },
+  { symbol: '^DJI',   label: '道瓊' },
+];
+
+const FX_LIST = [
+  { symbol: 'USDTWD=X', label: 'USD/TWD' },
+  { symbol: 'USDCNY=X', label: 'USD/CNY' },
+  { symbol: 'USDJPY=X', label: 'USD/JPY' },
+  { symbol: 'USDCHF=X', label: 'USD/CHF' },
+];
+
+function buildIndexHTML(results) {
+  return results.map(({ label, r }) => {
+    if (!r) return `<div class="index-item"><span class="index-name">${label}</span><span class="index-right"><span class="index-price">—</span></span></div>`;
+    const changeStr = (r.change >= 0 ? '+' : '') + r.change.toFixed(2) + ' (' + (r.changePct >= 0 ? '+' : '') + r.changePct.toFixed(2) + '%)';
+    const cls = r.change >= 0 ? 'pos' : 'neg';
+    return `<div class="index-item">
+      <span class="index-name">${label}</span>
+      <span class="index-right">
+        <div class="index-price">${r.price.toLocaleString(undefined, {maximumFractionDigits: 2})}</div>
+        <div class="index-change ${cls}">${changeStr}</div>
+      </span>
+    </div>`;
+  }).join('');
+}
+
+let _lastIdxPrices = {};
+let _lastFxPrices = {};
+
+async function refreshIndices() {
+  const [idxResults, fxResults] = await Promise.all([
+    Promise.all(INDICES.map(i => fetchUSPrice(i.symbol).then(r => ({ ...i, r })))),
+    Promise.all(FX_LIST.map(i => fetchUSPrice(i.symbol).then(r => ({ ...i, r })))),
+  ]);
+  document.getElementById('index-list').innerHTML = buildIndexHTML(idxResults);
+  document.getElementById('fx-list').innerHTML = buildIndexHTML(fxResults);
+  const fmtT = t => t.toLocaleString('zh-TW', { month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit' });
+  const fxTime  = fxResults.find(i => i.r?.marketTime)?.r?.marketTime;
+  const idxChanged = idxResults.some(i => i.r && i.r.price !== _lastIdxPrices[i.symbol]);
+  const fxChanged  = fxResults.some(i => i.r && i.r.price !== _lastFxPrices[i.symbol]);
+  if (idxChanged) {
+    // 台股指數（^TWII）和美股指數分開顯示時間
+    const twiiResult = idxResults.find(i => i.symbol === '^TWII');
+    const usIdxResult = idxResults.find(i => i.r?.marketTime && i.symbol !== '^TWII');
+    // 取台股時間（若無則取美股）
+    const twTime = twiiResult?.r?.marketTime;
+    const usTime = usIdxResult?.r?.marketTime;
+    const displayTime = twTime || usTime;
+    // 若兩者時間不同，顯示兩個時間
+    let timeText = '';
+    if (twTime && usTime && Math.abs(twTime - usTime) > 60000) {
+      timeText = '台 ' + fmtT(twTime) + ' | 美 ' + fmtT(usTime);
+    } else if (displayTime) {
+      timeText = fmtT(displayTime);
+    }
+    document.getElementById('index-update').textContent = timeText;
+    idxResults.forEach(i => { if (i.r) _lastIdxPrices[i.symbol] = i.r.price; });
+  }
+  if (fxChanged)  { document.getElementById('fx-update').textContent  = fxTime  ? fmtT(fxTime)  : ''; fxResults.forEach(i => { if (i.r) _lastFxPrices[i.symbol] = i.r.price; }); }
+  // 更新 USD/TWD 匯率
+  const usdtwdResult = fxResults.find(f => f.symbol === 'USDTWD=X');
+  if (usdtwdResult?.r) {
+    usdtwd = usdtwdResult.r.price;
+    document.getElementById('rate-status').textContent = `USD/TWD: ${usdtwd.toFixed(2)}`;
+  }
+}
+
+async function fetchPrice() {
+  const type = document.getElementById('f-type').value;
+  const code = document.getElementById('f-code').value.trim().toUpperCase();
+  if (!code) return;
+
+  document.getElementById('f-price-hint').textContent = '抓取中...';
+  document.getElementById('f-name-display').textContent = '';
+
+  const symbol = type === 'tw' ? code + '.TW' : type === 'crypto' ? (code.includes('-') ? code : code + '-USD') : code;
+  const result = await fetchUSPrice(symbol);
+  if (result) {
+    document.getElementById('f-price').value = result.price;
+    document.getElementById('f-name').value = result.name;
+    document.getElementById('f-name-display').textContent = result.name;
+    const prefix = type === 'tw' ? 'NT$' : '$';
+    document.getElementById('f-price-hint').textContent = `(即時 ${prefix}${result.price})`;
+  } else {
+    document.getElementById('f-price-hint').textContent = '抓取失敗，請手動輸入';
+  }
+}
+
+// 自動更新現價（台股+美股+加密，每5分鐘）
+async function refreshUSPrices() {
+  const groups = {
+    tw:     RAW.twHoldings.filter(h => !h.isTotal).map(h => ({ h, symbol: h.code + '.TW', type: 'tw' })),
+    us:     RAW.usHoldings.filter(h => !h.isTotal).map(h => ({ h, symbol: h.code, type: 'us' })),
+    crypto: RAW.cryptoHoldings.filter(h => !h.isTotal).map(h => ({ h, symbol: h.code.includes('-') ? h.code : h.code + '-USD', type: 'crypto' })),
+  };
+  const allHoldings = [...groups.tw, ...groups.us, ...groups.crypto];
+  const results = await Promise.all(allHoldings.map(async ({ h, symbol, type }) => {
+    const result = await fetchUSPrice(symbol);
+    if (result) {
+      const priceChanged = result.price !== _lastHoldingPrices[type][h.code];
+      if (priceChanged) {
+        _lastHoldingPrices[type][h.code] = result.price;
+        // 只在該類的最新時間比現有新時才記錄
+        if (result.marketTime && (!_lastHoldingTimes[type] || result.marketTime > _lastHoldingTimes[type])) {
+          _lastHoldingTimes[type] = result.marketTime;
+        }
+      }
+      h.price = result.price;
+      if (!h.name) h.name = result.name;
+      h.pnl = Math.round((h.price - h.avgPrice) * h.shares);
+      h.pnlPct = h.avgPrice > 0 ? parseFloat(((h.price - h.avgPrice) / h.avgPrice * 100).toFixed(2)) : 0;
+    }
+    return result;
+  }));
+  // 只傳有新資料的類別時間（若價格沒變動，傳 null 讓 renderHoldings 保留舊時間戳）
+  const marketTimes = {
+    tw:     _lastHoldingTimes.tw,
+    us:     _lastHoldingTimes.us,
+    crypto: _lastHoldingTimes.crypto,
+  };
+  renderHoldings(marketTimes);
+  recalcSummary();
+  autoRecordToday();
+  buildChart(chartRange, chartAsset);
+  const latestOverall = Object.values(_lastHoldingTimes).filter(Boolean)
+    .reduce((m, t) => !m || t > m ? t : m, null);
+  if (latestOverall) {
+    const fmtT = t => t.toLocaleString('zh-TW', { month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit' });
+    document.getElementById('last-update').textContent = '資料：' + fmtT(latestOverall);
+  }
+}
+
+// 新增標的
+function openModal(type) {
+  document.getElementById('f-type').value = type;
+  document.getElementById('f-code').value = '';
+  document.getElementById('f-name').value = '';
+  document.getElementById('f-name-display').textContent = '';
+  document.getElementById('f-price-hint').textContent = '';
+  document.getElementById('f-shares').value = '';
+  document.getElementById('f-avg').value = '';
+  document.getElementById('f-price').value = '';
+  document.getElementById('f-leverage').value = '1';
+  document.getElementById('modal').classList.add('open');
+  document.getElementById('f-code').focus();
+}
+
+function closeModal() {
+  document.getElementById('modal').classList.remove('open');
+}
+
+function editBalance(field) {
+  const labels = { cashTWD: '台幣現金（TWD）', cashUSD: '美元現金（USD）', loan: '信貸餘額（TWD）' };
+  const label = labels[field] || field;
+  const current = RAW.summary[field];
+  const val = prompt(`更新${label}：`, current);
+  if (val === null) return;
+  const num = parseFloat(val.replace(/,/g, ''));
+  if (isNaN(num) || num < 0) { alert('請輸入有效數字'); return; }
+  RAW.summary[field] = field === 'cashUSD' ? parseFloat(num.toFixed(2)) : Math.round(num);
+  recalcSummary();
+  saveStorage();
+}
+
+function totalCashTWD() {
+  return RAW.summary.cashTWD + RAW.summary.cashUSD * usdtwd;
+}
+
+function recalcSummary() {
+  // 台股以 TWD 計；美股/加密以 USD 計，再統一換 TWD
+  const twVal  = RAW.twHoldings.filter(h => !h.isTotal).reduce((s, h) => s + (h.price || 0) * h.shares, 0);
+  const usVal  = RAW.usHoldings.filter(h => !h.isTotal).reduce((s, h) => s + (h.price || 0) * h.shares * usdtwd, 0);
+  const crVal  = RAW.cryptoHoldings.filter(h => !h.isTotal).reduce((s, h) => s + (h.price || 0) * h.shares * usdtwd, 0);
+  // 損益各自以原幣算再換 TWD，避免匯率波動影響成本數字
+  const twPnl  = RAW.twHoldings.filter(h => !h.isTotal && h.price != null).reduce((s, h) => s + (h.price - h.avgPrice) * h.shares, 0);
+  const usPnl  = RAW.usHoldings.filter(h => !h.isTotal && h.price != null).reduce((s, h) => s + (h.price - h.avgPrice) * h.shares * usdtwd, 0);
+  const crPnl  = RAW.cryptoHoldings.filter(h => !h.isTotal && h.price != null).reduce((s, h) => s + (h.price - h.avgPrice) * h.shares * usdtwd, 0);
+  const cashTotal = totalCashTWD();
+  const totalAssets   = Math.round(twVal + usVal + crVal + cashTotal);
+  const unrealizedPnl = Math.round(twPnl + usPnl + crPnl);
+  const totalCost     = totalAssets - cashTotal - unrealizedPnl;
+  const unrealizedPct = totalCost > 0 ? parseFloat((unrealizedPnl / totalCost * 100).toFixed(2)) : 0;
+  const netAssets = totalAssets - RAW.summary.loan;
+
+  // 有效曝險槓桿：每個標的現值 × 槓桿倍數加總，再除以淨資產
+  const effExp = [
+    ...RAW.twHoldings.filter(h => !h.isTotal).map(h => (h.price||0) * h.shares * (h.leverage||1)),
+    ...RAW.usHoldings.filter(h => !h.isTotal).map(h => (h.price||0) * h.shares * usdtwd * (h.leverage||1)),
+    ...RAW.cryptoHoldings.filter(h => !h.isTotal).map(h => (h.price||0) * h.shares * usdtwd * (h.leverage||1)),
+  ].reduce((s, v) => s + v, 0);
+
+  RAW.summary.totalAssets      = totalAssets;
+  RAW.summary.totalCost        = totalCost;
+  RAW.summary.unrealizedPnl    = unrealizedPnl;
+  RAW.summary.unrealizedPct    = unrealizedPct;
+  RAW.summary.netAssets        = netAssets;
+  RAW.summary.twStock          = Math.round(twVal);
+  RAW.summary.usStock          = Math.round(usVal);
+  RAW.summary.crypto           = Math.round(crVal);
+  RAW.summary.leverageRate     = netAssets > 0 ? parseFloat((totalAssets / netAssets * 100).toFixed(2)) : 0;
+  RAW.summary.effectiveLeverage = netAssets > 0 ? parseFloat((effExp / netAssets * 100).toFixed(2)) : 0;
+  renderCards();
+  renderMonitor();
+  renderPieChart();
+}
+
+let pieChart;
+function renderPieChart() {
+  const tw    = RAW.summary.twStock   || 0;
+  const us    = RAW.summary.usStock   || 0;
+  const cr    = RAW.summary.crypto    || 0;
+  const cash  = Math.round(totalCashTWD());
+  const total = tw + us + cr + cash;
+  if (total <= 0) return;
+
+  const labels = ['台股', '美股', '加密', '現金'];
+  const values = [tw, us, cr, cash];
+  const colors = ['#4a9eff', '#f6c90e', '#a78bfa', '#34d399'];
+
+  const canvas = document.getElementById('pieChart');
+  if (!canvas) return;
+
+  if (pieChart) pieChart.destroy();
+  pieChart = new Chart(canvas.getContext('2d'), {
+    type: 'doughnut',
+    data: {
+      labels,
+      datasets: [{ data: values, backgroundColor: colors, borderWidth: 0, hoverOffset: 6 }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      cutout: '62%',
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label: ctx => {
+              const val = ctx.raw;
+              const pct = (val / total * 100).toFixed(1);
+              return ` ${fmtVal(val)} (${pct}%)`;
+            }
+          }
+        }
+      }
+    }
+  });
+
+  const legendEl = document.getElementById('pie-legend');
+  if (legendEl) {
+    legendEl.innerHTML = labels.map((l, i) => {
+      const pct = (values[i] / total * 100).toFixed(1);
+      return `<div class="pie-legend-item">
+        <span class="pie-legend-dot" style="background:${colors[i]}"></span>
+        <span class="pie-legend-label">${l}</span>
+        <span class="pie-legend-pct">${pct}%</span>
+      </div>`;
+    }).join('');
+  }
+}
+
+function addHolding() {
+  const type = document.getElementById('f-type').value;
+  const code = document.getElementById('f-code').value.trim().toUpperCase();
+  const name = document.getElementById('f-name').value.trim();
+  const shares = parseFloat(document.getElementById('f-shares').value) || 0;
+  const avgPrice = parseFloat(document.getElementById('f-avg').value) || 0;
+  const price = parseFloat(document.getElementById('f-price').value) || 0;
+  const leverage = parseFloat(document.getElementById('f-leverage').value) || 1;
+  if (!code) { document.getElementById('f-code').focus(); return; }
+
+  const target = type === 'tw' ? RAW.twHoldings : type === 'crypto' ? RAW.cryptoHoldings : RAW.usHoldings;
+  const existing = target.find(h => !h.isTotal && h.code === code);
+  if (existing) {
+    // 加權平均均價
+    const totalCost = existing.avgPrice * existing.shares + avgPrice * shares;
+    existing.shares = existing.shares + shares;
+    existing.avgPrice = existing.shares > 0 ? parseFloat((totalCost / existing.shares).toFixed(4)) : avgPrice;
+    if (name) existing.name = name;
+    existing.pnl = parseFloat(((existing.price - existing.avgPrice) * existing.shares).toFixed(2));
+    existing.pnlPct = existing.avgPrice > 0 ? parseFloat(((existing.price - existing.avgPrice) / existing.avgPrice * 100).toFixed(2)) : 0;
+  } else {
+    const pnl = parseFloat(((price - avgPrice) * shares).toFixed(2));
+    const pnlPct = avgPrice > 0 ? parseFloat(((price - avgPrice) / avgPrice * 100).toFixed(2)) : 0;
+    const newEntry = { code, name, shares, avgPrice, price, pnl, pnlPct, ...(leverage !== 1 && { leverage }) };
+    const totalIdx = target.findIndex(h => h.isTotal);
+    if (totalIdx >= 0) target.splice(totalIdx, 0, newEntry);
+    else target.push(newEntry);
+  }
+
+  // 買入扣現金並記帳
+  const cost = shares * avgPrice;
+  if (type === 'tw') {
+    RAW.summary.cashTWD = Math.max(0, RAW.summary.cashTWD - Math.round(cost));
+  } else {
+    RAW.summary.cashUSD = Math.max(0, parseFloat((RAW.summary.cashUSD - cost).toFixed(2)));
+  }
+  const today = new Date();
+  const dateStr = `${today.getFullYear()}/${today.getMonth()+1}/${today.getDate()}`;
+  transactions.push({ date: dateStr, type: 'buy', market: type, code, shares, price: avgPrice });
+  saveLedger();
+
+  closeModal();
+  renderHoldings({ tw: null, us: null, crypto: null });
+  recalcSummary();
+  saveStorage();
+  // 新增後立即抓一次現價
+  const newCode = existing ? existing.code : code;
+  const newSymbol = type === 'tw' ? newCode + '.TW' : type === 'crypto' ? (newCode.includes('-') ? newCode : newCode + '-USD') : newCode;
+  const ref = existing || (type === 'tw' ? RAW.twHoldings : type === 'crypto' ? RAW.cryptoHoldings : RAW.usHoldings).find(h => !h.isTotal && h.code === newCode);
+  if (ref) {
+    fetchUSPrice(newSymbol).then(r => {
+      if (r) {
+        ref.price = r.price; ref.name = ref.name || r.name;
+        ref.pnl = parseFloat(((r.price - ref.avgPrice) * ref.shares).toFixed(2));
+        ref.pnlPct = ref.avgPrice > 0 ? parseFloat(((r.price - ref.avgPrice) / ref.avgPrice * 100).toFixed(2)) : 0;
+        renderHoldings({ tw: null, us: null, crypto: null });
+        recalcSummary();
+      }
+    });
+  }
+}
+
+document.getElementById('modal').addEventListener('click', e => {
+  if (e.target === document.getElementById('modal')) closeModal();
+});
+document.getElementById('sell-modal').addEventListener('click', e => {
+  if (e.target === document.getElementById('sell-modal')) closeSellModal();
+});
+document.getElementById('ledger-modal').addEventListener('click', e => {
+  if (e.target === document.getElementById('ledger-modal')) closeLedgerModal();
+});
+
+// ── 賣出 ──
+let _sellType = 'tw';
+
+function openSellModal(type) {
+  _sellType = type;
+  document.getElementById('s-type').value = type;
+  loadSellOptions();
+  document.getElementById('s-shares').value = '';
+  document.getElementById('s-price').value = '';
+  document.getElementById('s-preview').innerHTML = '';
+  document.getElementById('sell-modal').classList.add('open');
+}
+
+function closeSellModal() {
+  document.getElementById('sell-modal').classList.remove('open');
+}
+
+function loadSellOptions() {
+  _sellType = document.getElementById('s-type').value;
+  const target = _sellType === 'tw' ? RAW.twHoldings : _sellType === 'us' ? RAW.usHoldings : RAW.cryptoHoldings;
+  const sel = document.getElementById('s-code');
+  sel.innerHTML = target.filter(h => !h.isTotal).map(h =>
+    `<option value="${h.code}">${h.code}${h.name ? ' ' + h.name : ''} (持有 ${h.shares})</option>`
+  ).join('');
+  updateSellHint();
+}
+
+function updateSellHint() {
+  const code = document.getElementById('s-code').value;
+  const target = _sellType === 'tw' ? RAW.twHoldings : _sellType === 'us' ? RAW.usHoldings : RAW.cryptoHoldings;
+  const h = target.find(x => !x.isTotal && x.code === code);
+  if (h) document.getElementById('s-shares-hint').textContent = `(持有 ${h.shares})`;
+}
+document.addEventListener('change', e => {
+  if (e.target.id === 's-code' || e.target.id === 's-shares' || e.target.id === 's-price') updateSellPreview();
+  if (e.target.id === 's-code') updateSellHint();
+});
+document.addEventListener('input', e => {
+  if (e.target.id === 's-shares' || e.target.id === 's-price') updateSellPreview();
+});
+
+function updateSellPreview() {
+  const shares = parseFloat(document.getElementById('s-shares').value) || 0;
+  const price = parseFloat(document.getElementById('s-price').value) || 0;
+  if (!shares || !price) { document.getElementById('s-preview').innerHTML = ''; return; }
+  const isTW = _sellType === 'tw';
+  const amount = shares * price;
+  const amountTWD = isTW ? amount : amount * usdtwd;
+  const prefix = isTW ? 'NT$' : 'US$';
+  let html = `賣出金額：<span style="color:#3dd68c;font-weight:600">${prefix}${amount.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}</span>`;
+  if (!isTW) html += ` ≈ NT$${Math.round(amountTWD).toLocaleString()}`;
+  html += `<br>將加入：${isTW ? '台幣現金' : '美元現金'}`;
+  document.getElementById('s-preview').innerHTML = html;
+}
+
+function confirmSell() {
+  const code = document.getElementById('s-code').value;
+  const shares = parseFloat(document.getElementById('s-shares').value);
+  const price = parseFloat(document.getElementById('s-price').value);
+  if (!code || !shares || shares <= 0 || !price || price <= 0) { alert('請填寫完整資料'); return; }
+
+  const target = _sellType === 'tw' ? RAW.twHoldings : _sellType === 'us' ? RAW.usHoldings : RAW.cryptoHoldings;
+  const h = target.find(x => !x.isTotal && x.code === code);
+  if (!h) { alert('找不到持倉'); return; }
+  if (shares > h.shares + 0.0001) { alert(`持有數量不足（持有 ${h.shares}）`); return; }
+
+  // 更新持倉
+  h.shares = parseFloat((h.shares - shares).toFixed(6));
+  if (h.shares <= 0.0001) {
+    // 全賣：從陣列移除
+    const idx = target.findIndex(x => !x.isTotal && x.code === code);
+    if (idx >= 0) target.splice(idx, 1);
+  } else {
+    if (h.price) {
+      h.pnl = parseFloat(((h.price - h.avgPrice) * h.shares).toFixed(2));
+      h.pnlPct = h.avgPrice > 0 ? parseFloat(((h.price - h.avgPrice) / h.avgPrice * 100).toFixed(2)) : 0;
+    }
+  }
+
+  // 加現金並記帳
+  const amount = shares * price;
+  if (_sellType === 'tw') {
+    RAW.summary.cashTWD += Math.round(amount);
+  } else {
+    RAW.summary.cashUSD = parseFloat((RAW.summary.cashUSD + amount).toFixed(2));
+  }
+  const today = new Date();
+  const dateStr = `${today.getFullYear()}/${today.getMonth()+1}/${today.getDate()}`;
+  transactions.push({ date: dateStr, type: 'sell', market: _sellType, code, shares, price });
+  saveLedger();
+
+  closeSellModal();
+  renderHoldings({ tw: null, us: null, crypto: null });
+  recalcSummary();
+  saveStorage();
+}
+
+// ── 帳本 ──
+function openLedgerModal() {
+  renderLedger();
+  document.getElementById('ledger-modal').classList.add('open');
+}
+
+function closeLedgerModal() {
+  document.getElementById('ledger-modal').classList.remove('open');
+}
+
+function renderLedger() {
+  const twd = RAW.summary.cashTWD;
+  const usd = RAW.summary.cashUSD;
+  document.getElementById('ledger-twd').textContent = 'NT$' + twd.toLocaleString();
+  document.getElementById('ledger-usd').textContent = 'US$' + usd.toLocaleString(undefined,{minimumFractionDigits:0,maximumFractionDigits:2});
+  document.getElementById('ledger-total').textContent = 'NT$' + Math.round(twd + usd * usdtwd).toLocaleString();
+
+  const tbody = document.getElementById('ledger-body');
+  if (!transactions.length) {
+    tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;color:#4a5568;padding:24px;font-size:13px">尚無交易記錄</td></tr>`;
+    return;
+  }
+  // 由新到舊
+  const sorted = [...transactions].map((tx, i) => ({ ...tx, _origIdx: i })).reverse();
+  tbody.innerHTML = sorted.map(tx => {
+    const isBuy = tx.type === 'buy';
+    const isTW = tx.market === 'tw';
+    const typeLabel = isBuy ? '買入' : '賣出';
+    const typeColor = isBuy ? '#f56565' : '#3dd68c';
+    const prefix = isTW ? 'NT$' : 'US$';
+    const amount = tx.shares * tx.price;
+    const cashSign = isBuy ? '-' : '+';
+    const cashColor = isBuy ? '#f56565' : '#3dd68c';
+    const mktLabel = tx.market === 'tw' ? '台股' : tx.market === 'us' ? '美股' : '加密';
+    const idx = tx._origIdx;
+    return `<tr>
+      <td style="text-align:left;padding:7px 8px;font-size:12px;color:#7a8499;border-bottom:1px solid #1e2230">${tx.date}</td>
+      <td style="padding:7px 8px;font-size:12px;text-align:center;border-bottom:1px solid #1e2230"><span style="color:${typeColor};font-weight:600">${typeLabel}</span></td>
+      <td style="padding:7px 8px;font-size:12px;text-align:center;color:#9aa3b2;border-bottom:1px solid #1e2230">${mktLabel} ${tx.code}</td>
+      <td style="padding:7px 8px;font-size:12px;text-align:right;color:#9aa3b2;border-bottom:1px solid #1e2230">${tx.shares.toLocaleString()}</td>
+      <td style="padding:7px 8px;font-size:12px;text-align:right;color:#9aa3b2;border-bottom:1px solid #1e2230">${prefix}${tx.price.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:4})}</td>
+      <td style="padding:7px 8px;font-size:12px;text-align:right;color:#c8d0e0;font-weight:600;border-bottom:1px solid #1e2230">${prefix}${amount.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}</td>
+      <td style="padding:7px 8px;font-size:12px;text-align:right;color:${cashColor};font-weight:600;border-bottom:1px solid #1e2230">${cashSign}${prefix}${amount.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}</td>
+      <td style="padding:4px 8px;border-bottom:1px solid #1e2230;white-space:nowrap">
+        <button onclick="openLedgerEditModal(${idx})" style="background:none;border:1px solid #2e3342;border-radius:4px;color:#7a8499;font-size:10px;padding:2px 7px;cursor:pointer;margin-right:4px" onmouseover="this.style.color='#4a9eff';this.style.borderColor='#4a9eff'" onmouseout="this.style.color='#7a8499';this.style.borderColor='#2e3342'">編輯</button>
+        <button onclick="deleteLedgerEntry(${idx})" style="background:none;border:1px solid #2e3342;border-radius:4px;color:#7a8499;font-size:10px;padding:2px 7px;cursor:pointer" onmouseover="this.style.color='#f56565';this.style.borderColor='#f56565'" onmouseout="this.style.color='#7a8499';this.style.borderColor='#2e3342'">刪除</button>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+let _ledgerEditIdx = null;
+
+function openLedgerEditModal(idx) {
+  _ledgerEditIdx = idx;
+  const tx = transactions[idx];
+  if (!tx) return;
+  // 日期格式轉為 input[type=date] 需要的 yyyy-mm-dd
+  const dateParts = tx.date.split('/');
+  const dateVal = dateParts.length === 3
+    ? `${dateParts[0]}-${String(dateParts[1]).padStart(2,'0')}-${String(dateParts[2]).padStart(2,'0')}`
+    : tx.date;
+  document.getElementById('le-date').value = dateVal;
+  document.getElementById('le-type').value = tx.type;
+  document.getElementById('le-market').value = tx.market;
+  document.getElementById('le-code').value = tx.code;
+  document.getElementById('le-shares').value = tx.shares;
+  document.getElementById('le-price').value = tx.price;
+  document.getElementById('ledger-edit-modal').classList.add('open');
+}
+
+function closeLedgerEditModal() {
+  _ledgerEditIdx = null;
+  document.getElementById('ledger-edit-modal').classList.remove('open');
+}
+
+function saveLedgerEdit() {
+  if (_ledgerEditIdx === null) return;
+  const dateRaw = document.getElementById('le-date').value;
+  // 轉回 yyyy/m/d 格式
+  const [y, m, d] = dateRaw.split('-');
+  const date = `${y}/${parseInt(m)}/${parseInt(d)}`;
+  transactions[_ledgerEditIdx] = {
+    ...transactions[_ledgerEditIdx],
+    date,
+    type: document.getElementById('le-type').value,
+    market: document.getElementById('le-market').value,
+    code: document.getElementById('le-code').value.trim().toUpperCase(),
+    shares: parseFloat(document.getElementById('le-shares').value),
+    price: parseFloat(document.getElementById('le-price').value),
+  };
+  saveLedger();
+  closeLedgerEditModal();
+  renderLedger();
+}
+
+function deleteLedgerEntry(idx) {
+  if (!confirm(`確定要刪除這筆交易記錄？`)) return;
+  transactions.splice(idx, 1);
+  saveLedger();
+  renderLedger();
+}
+
+// ── 分頁切換 ──────────────────────────────────────────────────────
+function showPage(page) {
+  document.getElementById('page-overview').style.display = page === 'overview' ? '' : 'none';
+  document.getElementById('page-debt').style.display = page === 'debt' ? '' : 'none';
+  document.querySelectorAll('.nav-item').forEach((el, i) => {
+    el.classList.toggle('active', (i === 0 && page === 'overview') || (i === 1 && page === 'debt'));
+  });
+  if (page === 'debt') renderDebtPage();
+}
+
+// ── 負債管理 ──────────────────────────────────────────────────────
+const DEBT_KEY = 'dashboard_debts_v3';
+let debts = [];
+
+function loadDebts() {
+  try {
+    const raw = localStorage.getItem(DEBT_KEY);
+    if (raw) {
+      debts = JSON.parse(raw);
+    } else {
+      debts = [{
+        id: 1,
+        name: '將來信貸',
+        principal: 1000000,
+        remaining: 921573,
+        rate: 2.62,
+        monthly: 17800.32,
+        months: 55,
+        startDate: '2025-12-09',
+        payDay: 9,
+        deduct: 10000,
+        salary: 7800,
+        note: '自有資金每年年終補滿 120,000'
+      }];
+      saveDebts();
+    }
+  } catch(e) {}
+}
+
+function saveDebts() {
+  localStorage.setItem(DEBT_KEY, JSON.stringify(debts));
+}
+
+let editDebtId = null;
+
+function openDebtModal(id) {
+  editDebtId = id != null ? id : null;
+  const d = id != null ? debts.find(x => x.id === id) : null;
+  document.getElementById('debt-modal-title').textContent = d ? '編輯貸款' : '新增貸款';
+  document.getElementById('d-name').value      = d ? d.name : '';
+  document.getElementById('d-principal').value = d ? d.principal : '';
+  document.getElementById('d-remaining').value = d ? d.remaining : '';
+  document.getElementById('d-rate').value      = d ? d.rate : '';
+  document.getElementById('d-monthly').value   = d ? d.monthly : '';
+  document.getElementById('d-months').value    = d ? d.months : '';
+  document.getElementById('d-startdate').value = d ? (d.startDate || '') : '';
+  document.getElementById('d-payday').value    = d ? (d.payDay || '') : '';
+  document.getElementById('d-deduct').value    = d ? (d.deduct || '') : '';
+  document.getElementById('d-salary').value    = d ? (d.salary || '') : '';
+  document.getElementById('d-note').value      = d ? (d.note || '') : '';
+  document.getElementById('debt-modal').style.display = 'flex';
+}
+
+function closeDebtModal() {
+  document.getElementById('debt-modal').style.display = 'none';
+}
+
+function saveDebt() {
+  const name      = document.getElementById('d-name').value.trim();
+  const principal = parseFloat(document.getElementById('d-principal').value) || 0;
+  const remaining = parseFloat(document.getElementById('d-remaining').value) || 0;
+  const rate      = parseFloat(document.getElementById('d-rate').value) || 0;
+  const monthly   = parseFloat(document.getElementById('d-monthly').value) || 0;
+  const months    = parseInt(document.getElementById('d-months').value) || 0;
+  const startDate = document.getElementById('d-startdate').value;
+  const payDay    = parseInt(document.getElementById('d-payday').value) || null;
+  const deduct    = parseFloat(document.getElementById('d-deduct').value) || 0;
+  const salary    = parseFloat(document.getElementById('d-salary').value) || 0;
+  const note      = document.getElementById('d-note').value.trim();
+  if (!name) { alert('請輸入貸款名稱'); return; }
+
+  const entry = { name, principal, remaining, rate, monthly, months, startDate, payDay, deduct, salary, note };
+  if (editDebtId != null) {
+    const d = debts.find(x => x.id === editDebtId);
+    if (d) Object.assign(d, entry);
+  } else {
+    debts.push({ id: Date.now(), ...entry });
+  }
+  saveDebts();
+  closeDebtModal();
+  renderDebtPage();
+}
+
+function deleteDebt(id) {
+  if (!confirm('確認刪除此貸款？')) return;
+  debts = debts.filter(x => x.id !== id);
+  saveDebts();
+  renderDebtPage();
+}
+
+function renderDebtPage() {
+  const tbody = document.getElementById('debt-table-body');
+  const empty = document.getElementById('debt-empty');
+  if (!debts.length) {
+    tbody.innerHTML = '';
+    empty.style.display = '';
+    document.getElementById('debt-total').textContent = '—';
+    document.getElementById('debt-monthly-sum').textContent = '—';
+    document.getElementById('debt-monthly-breakdown').textContent = '—';
+    document.getElementById('debt-total-interest').textContent = '—';
+    document.getElementById('debt-avg-rate').textContent = '—';
+    return;
+  }
+  empty.style.display = 'none';
+
+  function calcRemaining(d) {
+    if (!d.startDate || !d.rate || !d.monthly || !d.principal) return d.remaining;
+    const start = new Date(d.startDate);
+    const payDay = d.payDay || start.getDate();
+    const now = new Date();
+    let paidCount = 0;
+    let checkDate = new Date(start.getFullYear(), start.getMonth() + 1, payDay);
+    while (checkDate <= now) { paidCount++; checkDate = new Date(checkDate.getFullYear(), checkDate.getMonth() + 1, payDay); }
+    const r = d.rate / 100 / 12;
+    let bal = d.principal;
+    for (let i = 0; i < paidCount && bal > 0; i++) bal = bal - (d.monthly - bal * r);
+    return Math.max(0, Math.round(bal));
+  }
+
+  const totalRemaining  = debts.reduce((s, d) => s + calcRemaining(d), 0);
+  const totalMonthly    = debts.reduce((s, d) => s + d.monthly, 0);
+  const totalInterest   = debts.reduce((s, d) => {
+    const rem = calcRemaining(d);
+    const r = d.rate / 100 / 12;
+    let b = rem, interest = 0, cnt = 0;
+    while (b > 0 && cnt < 1200) { const i = b * r; interest += i; b = b - (d.monthly - i); cnt++; }
+    return s + Math.round(interest);
+  }, 0);
+  const avgRate = totalRemaining > 0 ? debts.reduce((s, d) => s + d.rate * calcRemaining(d), 0) / totalRemaining : 0;
+
+  document.getElementById('debt-total').textContent = 'NT$' + Math.round(totalRemaining).toLocaleString();
+  document.getElementById('debt-monthly-sum').textContent = 'NT$' + totalMonthly.toLocaleString(undefined, {maximumFractionDigits:0});
+  document.getElementById('debt-total-interest').textContent = 'NT$' + Math.round(totalInterest).toLocaleString();
+  document.getElementById('debt-avg-rate').textContent = avgRate.toFixed(2) + '%';
+
+  tbody.innerHTML = debts.map(d => {
+    // 自動計算：從撥款日到今天已還幾期，推算當前餘額與剩餘期數
+    let autoRemaining = d.remaining;
+    let autoMonths = d.months;
+    let autoCleared = false;
+    if (d.startDate && d.rate > 0 && d.monthly > 0 && d.principal > 0) {
+      const start = new Date(d.startDate);
+      const payDay = d.payDay || start.getDate();
+      const now = new Date();
+      // 計算從撥款日起，到今天已發生幾次還款（每月 payDay 日）
+      let paidCount = 0;
+      let checkDate = new Date(start.getFullYear(), start.getMonth() + 1, payDay);
+      while (checkDate <= now) {
+        paidCount++;
+        checkDate = new Date(checkDate.getFullYear(), checkDate.getMonth() + 1, payDay);
+      }
+      // 從原始本金往前滾算
+      const r = d.rate / 100 / 12;
+      let bal = d.principal;
+      for (let i = 0; i < paidCount && bal > 0; i++) {
+        const interest = bal * r;
+        bal = bal - (d.monthly - interest);
+      }
+      autoRemaining = Math.max(0, Math.round(bal));
+      // 剩餘期數：從現在餘額繼續算
+      let rem = 0;
+      let b = autoRemaining;
+      while (b > 0 && rem < 1200) {
+        b = b - (d.monthly - b * r);
+        rem++;
+      }
+      autoMonths = rem;
+      autoCleared = autoRemaining <= 0;
+    }
+
+    const totalPaid = d.principal - autoRemaining;
+    const pct = d.principal > 0 ? (totalPaid / d.principal * 100).toFixed(1) : 0;
+
+    // 預計還清日
+    let clearDate = '—';
+    if (d.startDate && autoMonths > 0) {
+      const now = new Date();
+      const payDay = d.payDay || new Date(d.startDate).getDate();
+      const end = new Date(now.getFullYear(), now.getMonth() + autoMonths, payDay);
+      clearDate = end.toLocaleDateString('zh-TW', { year: 'numeric', month: '2-digit' });
+    }
+
+    const startFmt = d.startDate ? new Date(d.startDate).toLocaleDateString('zh-TW', { year: 'numeric', month: '2-digit', day: '2-digit' }) : '—';
+    return `<tr style="border-bottom:1px solid #1e2230;">
+      <td style="padding:14px 16px;min-width:160px;">
+        <div style="font-size:15px;font-weight:600;color:#e2e8f0;">${d.name}</div>
+        <div style="margin-top:7px;height:3px;background:#1e2230;border-radius:2px;">
+          <div style="width:${Math.min(pct,100)}%;height:3px;background:#4a9eff;border-radius:2px;"></div>
+        </div>
+        <div style="font-size:12px;color:#4a5568;margin-top:4px;">已還 ${pct}%</div>
+      </td>
+      <td style="text-align:right;padding:14px 16px;color:#7a8499;font-size:14px;">NT$${d.principal.toLocaleString()}</td>
+      <td style="text-align:right;padding:14px 16px;color:#f56565;font-weight:600;font-size:15px;">NT$${autoRemaining.toLocaleString()}</td>
+      <td style="text-align:right;padding:14px 16px;color:#e2e8f0;font-size:14px;">${d.rate}%</td>
+      <td style="text-align:right;padding:14px 16px;color:#e2e8f0;font-size:14px;">NT$${d.monthly.toLocaleString(undefined,{maximumFractionDigits:0})}</td>
+      <td style="text-align:right;padding:14px 16px;color:#e2e8f0;font-size:14px;">${autoMonths} 個月</td>
+      <td style="text-align:right;padding:14px 16px;color:#7a8499;font-size:14px;">
+        <div>${startFmt}</div>
+        ${d.payDay ? `<div style="font-size:12px;color:#4a5568;margin-top:3px;">每月 ${d.payDay} 日還款</div>` : ''}
+      </td>
+      <td style="text-align:right;padding:14px 16px;color:#7a8499;font-size:14px;">${clearDate}</td>
+      <td style="text-align:left;padding:14px 16px;font-size:12px;color:#4a9eff;">${d.note || '—'}</td>
+      <td style="text-align:right;padding:14px 12px;white-space:nowrap;">
+        <button class="btn" onclick="openDebtModal(${d.id})" style="margin-right:4px;">編輯</button>
+        <button class="btn" onclick="deleteDebt(${d.id})" style="color:#f56565;">刪除</button>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+// 初始化：先從 localStorage 載入，再 recalc/render
+loadLedger();
+loadDebts();
+// 版本戳記：更新持倉時調高此數字，強制覆蓋舊 localStorage
+const DATA_VERSION = 4;
+if (parseInt(localStorage.getItem('dashboard_data_version') || '0') < DATA_VERSION) {
+  localStorage.removeItem(STORAGE_KEY);
+  localStorage.setItem('dashboard_data_version', DATA_VERSION);
+}
+loadStorage();
+fetchRate();
+recalcSummary();
+renderMonitor();
+renderHoldings({ tw: null, us: null, crypto: null });
+buildChart('1y', 'all');
+refreshUSPrices();
+refreshIndices();
+setInterval(() => { refreshUSPrices(); refreshIndices(); }, 5 * 60 * 1000);
+</script>
+</body>
+</html>
