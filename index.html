@@ -39,7 +39,7 @@
   .platform-item .name { color: #7a8499; font-weight: 500; }
   .platform-item .val { color: #c8d0e0; font-weight: 600; }
 
-  .chart-section { background: #1a1d26; border-radius: 10px; padding: 22px 24px; border: 1px solid #252830; margin-bottom: 20px; }
+  .chart-section { background: #1a1d26; border-radius: 10px; padding: 22px 24px; border: 1px solid #252830; }
   .chart-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
   .chart-title { font-size: 15px; font-weight: 600; color: #c8d0e0; }
   .chart-filters { display: flex; gap: 4px; }
@@ -52,10 +52,16 @@
   .pie-legend-dot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
   .pie-legend-label { flex: 1; }
   .pie-legend-pct { color: #c8d0e0; font-weight: 600; min-width: 38px; text-align: right; }
+  #pieChart { width: 220px !important; height: 220px !important; }
+  .alloc-row { margin-bottom: 8px; }
+  .alloc-row-header { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; font-size: 12px; }
+  .alloc-bar-track { background: #1e2535; border-radius: 4px; height: 8px; overflow: hidden; }
+  .alloc-bar-fill { height: 100%; border-radius: 4px; transition: width .4s; }
+  .alloc-select { background:#13161d; border:1px solid #2e3342; border-radius:4px; color:#c8d0e0; font-size:11px; padding:2px 4px; cursor:pointer; }
 
   .holdings-section { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; margin-bottom: 20px; }
   .holding-card { background: #1a1d26; border-radius: 10px; padding: 18px 20px; border: 1px solid #252830; }
-  .holding-title { font-size: 14px; font-weight: 600; color: #c8d0e0; margin-bottom: 14px; display: flex; align-items: center; gap: 8px; }
+  .holding-title { font-size: 14px; font-weight: 600; color: #c8d0e0; margin-bottom: 14px; display: flex; align-items: center; gap: 8px; white-space: nowrap; }
   .badge { padding: 2px 7px; border-radius: 4px; font-size: 10px; font-weight: 700; letter-spacing: 0.03em; }
   .badge-tw { background: rgba(251,191,36,0.12); color: #fbbf24; border: 1px solid rgba(251,191,36,0.25); }
   .badge-us { background: rgba(74,158,255,0.12); color: #4a9eff; border: 1px solid rgba(74,158,255,0.25); }
@@ -122,9 +128,9 @@
   .debt-cards { grid-template-columns: repeat(4, 1fr); }
 
   /* 趨勢圖 + 圓餅圖 row（桌面） */
-  .charts-row { display: flex; gap: 14px; margin-bottom: 20px; }
-  .chart-trend { flex: 6; margin-bottom: 0; }
-  .chart-pie { flex: 4; margin-bottom: 0; display: flex; flex-direction: column; }
+  .charts-row { display: grid; grid-template-columns: 6fr 4fr; gap: 14px; margin-bottom: 20px; }
+  .chart-trend { margin-bottom: 0; }
+  .chart-pie { margin-bottom: 0; display: flex; flex-direction: column; }
 
   /* ── 響應式：手機（≤ 768px） ── */
   @media (max-width: 768px) {
@@ -159,9 +165,7 @@
     .monitor-row { grid-template-columns: 1fr; gap: 10px; }
 
     /* 趨勢圖 + 圓餅圖：上下疊 */
-    .charts-row { flex-direction: column; }
-    .chart-trend { flex: none; }
-    .chart-pie { flex: none; }
+    .charts-row { grid-template-columns: 1fr; }
     .chart-canvas-wrapper { height: 200px; }
 
     /* 圓餅圖縮小 */
@@ -302,9 +306,17 @@
       <div class="chart-title" style="margin-bottom:16px;">資產比重 <span style="font-size:11px;color:#4a5568;font-weight:400">點擊板塊查看個股</span></div>
       <div style="display:flex;align-items:center;justify-content:center;gap:24px;flex:1;min-height:220px;">
         <div style="position:relative;width:220px;height:220px;flex-shrink:0;">
-          <canvas id="pieChart"></canvas>
+          <canvas id="pieChart" width="220" height="220"></canvas>
         </div>
         <div class="pie-legend" id="pie-legend"></div>
+      </div>
+      <!-- 配置分類區塊 -->
+      <div id="alloc-section" style="margin-top:16px;border-top:1px solid #1e2535;padding-top:14px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+          <span style="font-size:12px;font-weight:600;color:#8892a4;letter-spacing:.5px;">配置分類</span>
+          <button onclick="openAllocModal()" style="background:none;border:1px solid #2e3342;border-radius:4px;color:#4a9eff;font-size:11px;padding:2px 8px;cursor:pointer">⚙ 設定</button>
+        </div>
+        <div id="alloc-bars"></div>
       </div>
     </div>
   </div>
@@ -313,7 +325,7 @@
     <div class="holding-card">
       <div class="holding-title" style="justify-content:space-between">
         <span>台股持倉 <span class="badge badge-tw" id="badge-tw">TWD</span><span class="holding-update" id="tw-update"></span></span>
-        <div style="display:flex;gap:6px;align-items:center">
+        <div style="display:flex;gap:6px;align-items:center;flex-wrap:nowrap;flex-shrink:0">
           <span style="font-size:11px;color:#4a5568;padding:2px 4px">TWD</span>
           <button class="edit-btn" style="font-size:12px;padding:3px 8px;border:1px solid #2e3342;border-radius:6px" onclick="openSellModal('tw')">賣出</button>
           <button class="edit-btn" style="font-size:12px;padding:3px 8px;border:1px solid #2e3342;border-radius:6px" onclick="openEditModal('tw')">編輯</button>
@@ -336,7 +348,7 @@
     <div class="holding-card">
       <div class="holding-title" style="justify-content:space-between">
         <span>美股持倉 <span class="badge badge-us" id="badge-us">USD</span><span class="holding-update" id="us-update"></span></span>
-        <div style="display:flex;gap:6px;align-items:center">
+        <div style="display:flex;gap:6px;align-items:center;flex-wrap:nowrap;flex-shrink:0">
           <button class="filter-btn" id="cur-btn-us" onclick="toggleHoldingCurrency('us')" style="padding:2px 8px;font-size:11px">USD</button>
           <button class="edit-btn" style="font-size:12px;padding:3px 8px;border:1px solid #2e3342;border-radius:6px" onclick="openSellModal('us')">賣出</button>
           <button class="edit-btn" style="font-size:12px;padding:3px 8px;border:1px solid #2e3342;border-radius:6px" onclick="openEditModal('us')">編輯</button>
@@ -359,7 +371,7 @@
     <div class="holding-card">
       <div class="holding-title" style="justify-content:space-between">
         <span>加密貨幣 <span class="badge badge-crypto" id="badge-crypto">USD</span><span class="holding-update" id="crypto-update"></span></span>
-        <div style="display:flex;gap:6px;align-items:center">
+        <div style="display:flex;gap:6px;align-items:center;flex-wrap:nowrap;flex-shrink:0">
           <button class="filter-btn" id="cur-btn-crypto" onclick="toggleHoldingCurrency('crypto')" style="padding:2px 8px;font-size:11px">USD</button>
           <button class="edit-btn" style="font-size:12px;padding:3px 8px;border:1px solid #2e3342;border-radius:6px" onclick="openSellModal('crypto')">賣出</button>
           <button class="edit-btn" style="font-size:12px;padding:3px 8px;border:1px solid #2e3342;border-radius:6px" onclick="openEditModal('crypto')">編輯</button>
@@ -519,6 +531,22 @@
   </div>
 
   <!-- 帳本 Modal -->
+  <!-- 配置分類設定 Modal -->
+  <div class="modal-overlay" id="alloc-modal">
+    <div class="modal" style="width:520px;max-height:82vh;display:flex;flex-direction:column">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+        <h3 style="margin:0">配置分類設定</h3>
+        <button class="btn-cancel" onclick="closeAllocModal()" style="padding:4px 10px;font-size:12px;border-radius:6px;cursor:pointer">關閉</button>
+      </div>
+      <p style="font-size:12px;color:#5a6780;margin:0 0 12px">為每個持倉指定分類，圓餅圖下方會顯示各分類佔比。</p>
+      <div id="alloc-modal-body" style="overflow-y:auto;flex:1"></div>
+      <div style="margin-top:14px;display:flex;gap:8px;align-items:center">
+        <input id="alloc-new-cat" placeholder="新增分類名稱" style="flex:1;background:#13161d;border:1px solid #2e3342;border-radius:6px;color:#e2e8f0;padding:6px 10px;font-size:13px">
+        <button class="btn" onclick="addAllocCategory()">新增</button>
+      </div>
+    </div>
+  </div>
+
   <div class="modal-overlay" id="ledger-modal">
     <div class="modal" style="width:580px;max-height:80vh;display:flex;flex-direction:column">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
@@ -2510,16 +2538,207 @@ function recalcSummary() {
   RAW.summary.effectiveLeverage = netAssets > 0 ? parseFloat((effExp / netAssets * 100).toFixed(2)) : 0;
   renderCards();
   renderMonitor();
-  renderPieChart(_pieDrillMode);
+  renderPieChart();
+  renderAllocBars();
 }
+
+// ── 配置分類 ──────────────────────────────────────────
+const ALLOC_KEY = 'dashboard_alloc_v1';
+const ALLOC_COLORS = ['#4a9eff','#f6c90e','#f87171','#34d399','#a78bfa','#fb923c','#2dd4bf'];
+
+const ALLOC_VERSION = 2;
+const DEFAULT_ALLOC = {
+  version: ALLOC_VERSION,
+  categories: ['核心持倉', '槓桿/主題', '衛星個股'],
+  map: {
+    '0050': '核心持倉', '006208': '核心持倉', 'VOO': '核心持倉', '2330': '核心持倉',
+    'TSLL': '槓桿/主題', 'NVDL': '槓桿/主題', 'QLD': '槓桿/主題', 'SSO': '槓桿/主題',
+    '2404': '衛星個股', '4772': '衛星個股',
+    'NVDA': '衛星個股', 'TSLA': '衛星個股', 'PLTR': '衛星個股', 'AVL': '衛星個股', 'NAK': '衛星個股',
+  }
+};
+
+let allocData = JSON.parse(JSON.stringify(DEFAULT_ALLOC));
+
+function loadAlloc() {
+  try {
+    const raw = localStorage.getItem(ALLOC_KEY);
+    if (raw) {
+      const saved = JSON.parse(raw);
+      if ((saved.version || 1) >= ALLOC_VERSION) allocData = saved;
+      else { allocData = JSON.parse(JSON.stringify(DEFAULT_ALLOC)); saveAlloc(); }
+    }
+  } catch(e) {}
+}
+
+function saveAlloc() {
+  localStorage.setItem(ALLOC_KEY, JSON.stringify(allocData));
+}
+
+function getAllHoldingCodes() {
+  return [
+    ...RAW.twHoldings.filter(h => !h.isTotal).map(h => ({ code: h.code.replace('.TW',''), name: h.name })),
+    ...RAW.usHoldings.filter(h => !h.isTotal).map(h => ({ code: h.code, name: h.name })),
+    ...RAW.cryptoHoldings.filter(h => !h.isTotal).map(h => ({ code: h.code, name: h.name })),
+  ];
+}
+
+function renderAllocBars() {
+  const el = document.getElementById('alloc-bars');
+  if (!el) return;
+
+  // drill-down 模式只顯示對應板塊
+  const isTW     = _pieDrillMode === 'tw';
+  const isUS     = _pieDrillMode === 'us';
+  const isCrypto = _pieDrillMode === 'crypto';
+
+  const allHoldings = _pieDrillMode
+    ? (isTW     ? RAW.twHoldings     : isUS ? RAW.usHoldings : RAW.cryptoHoldings)
+        .filter(h => !h.isTotal && h.price != null)
+        .map(h => ({ code: h.code.replace('.TW',''), val: h.price * h.shares * (isTW ? 1 : usdtwd) }))
+    : [
+        ...RAW.twHoldings.filter(h => !h.isTotal && h.price != null)
+          .map(h => ({ code: h.code.replace('.TW',''), val: h.price * h.shares })),
+        ...RAW.usHoldings.filter(h => !h.isTotal && h.price != null)
+          .map(h => ({ code: h.code, val: h.price * h.shares * usdtwd })),
+        ...RAW.cryptoHoldings.filter(h => !h.isTotal && h.price != null)
+          .map(h => ({ code: h.code, val: h.price * h.shares * usdtwd })),
+      ];
+
+  // drill-down 時不計現金
+  const cashVal = _pieDrillMode ? 0 : Math.round(totalCashTWD());
+  const grandTotal = allHoldings.reduce((s, h) => s + h.val, 0) + cashVal;
+  if (grandTotal <= 0) { el.innerHTML = ''; return; }
+
+  // 統計各分類
+  const catVals = {};
+  const catCodes = {};
+  for (const cat of allocData.categories) { catVals[cat] = 0; catCodes[cat] = []; }
+  catVals['未分類'] = 0; catCodes['未分類'] = [];
+  if (!_pieDrillMode) { catVals['現金'] = cashVal; catCodes['現金'] = ['現金']; }
+
+  for (const h of allHoldings) {
+    const cat = allocData.map[h.code] || '未分類';
+    if (catVals[cat] == null) { catVals[cat] = 0; catCodes[cat] = []; }
+    catVals[cat] += h.val;
+    catCodes[cat].push(h.code);
+  }
+
+  const FIXED_COLORS = { '現金': '#34d399', '未分類': '#4a5568' };
+  const userCats = allocData.categories.filter(c => catVals[c] > 0);
+  const rows = [...userCats, '未分類', '現金']
+    .filter(c => catVals[c] > 0)
+    .map((cat, i) => ({
+      cat, val: catVals[cat], codes: catCodes[cat],
+      color: FIXED_COLORS[cat] || ALLOC_COLORS[i % ALLOC_COLORS.length]
+    }));
+
+  el.innerHTML = rows.map(r => {
+    const pct = (r.val / grandTotal * 100).toFixed(1);
+    const codesStr = r.codes.join(', ');
+    return `<div class="alloc-row">
+      <div class="alloc-row-header">
+        <span style="width:8px;height:8px;border-radius:50%;background:${r.color};flex-shrink:0;display:inline-block"></span>
+        <span style="color:#c8d0e0;font-weight:600;min-width:70px">${r.cat}</span>
+        <span style="color:#4a9eff;font-weight:700;min-width:36px">${pct}%</span>
+        <span style="color:#4a5568;font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${codesStr}</span>
+      </div>
+      <div class="alloc-bar-track">
+        <div class="alloc-bar-fill" style="width:${pct}%;background:${r.color}"></div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function openAllocModal() {
+  const body = document.getElementById('alloc-modal-body');
+  const holdings = getAllHoldingCodes();
+  const catOptions = ['', ...allocData.categories]
+    .map(c => `<option value="${c}">${c || '（未分類）'}</option>`).join('');
+
+  body.innerHTML = `<table style="width:100%;border-collapse:collapse;font-size:13px">
+    <thead><tr>
+      <th style="text-align:left;color:#5a6780;padding:4px 8px;font-weight:500">代號</th>
+      <th style="text-align:left;color:#5a6780;padding:4px 8px;font-weight:500">名稱</th>
+      <th style="text-align:left;color:#5a6780;padding:4px 8px;font-weight:500">分類</th>
+    </tr></thead>
+    <tbody>${holdings.map(h => `<tr>
+      <td style="padding:5px 8px;color:#c8d0e0;font-weight:600">${h.code}</td>
+      <td style="padding:5px 8px;color:#7a8499;font-size:11px">${h.name}</td>
+      <td style="padding:5px 8px">
+        <select class="alloc-select" onchange="setAllocCode('${h.code}',this.value)">
+          ${['', ...allocData.categories].map(c =>
+            `<option value="${c}" ${(allocData.map[h.code]||'')=== c ? 'selected':''}>${c||'（未分類）'}</option>`
+          ).join('')}
+        </select>
+      </td>
+    </tr>`).join('')}</tbody>
+  </table>
+  <div style="margin-top:12px;border-top:1px solid #1e2535;padding-top:12px">
+    <div style="font-size:12px;color:#5a6780;margin-bottom:6px">現有分類（點擊刪除）</div>
+    <div id="alloc-cat-tags">${renderAllocCatTags()}</div>
+  </div>`;
+
+  document.getElementById('alloc-modal').classList.add('open');
+}
+
+function renderAllocCatTags() {
+  return allocData.categories.map(c =>
+    `<span style="display:inline-flex;align-items:center;gap:4px;background:#1e2535;border-radius:12px;padding:3px 10px;font-size:12px;color:#c8d0e0;margin:3px;cursor:pointer"
+      onclick="removeAllocCategory('${c}')">${c} ✕</span>`
+  ).join('');
+}
+
+function setAllocCode(code, cat) {
+  if (cat) allocData.map[code] = cat;
+  else delete allocData.map[code];
+  saveAlloc();
+  renderAllocBars();
+}
+
+function addAllocCategory() {
+  const input = document.getElementById('alloc-new-cat');
+  const name = input.value.trim();
+  if (!name || allocData.categories.includes(name)) return;
+  allocData.categories.push(name);
+  saveAlloc();
+  input.value = '';
+  openAllocModal(); // 重新整理 modal
+  renderAllocBars();
+}
+
+function removeAllocCategory(cat) {
+  allocData.categories = allocData.categories.filter(c => c !== cat);
+  for (const k of Object.keys(allocData.map)) {
+    if (allocData.map[k] === cat) delete allocData.map[k];
+  }
+  saveAlloc();
+  openAllocModal();
+  renderAllocBars();
+}
+
+function closeAllocModal() {
+  document.getElementById('alloc-modal').classList.remove('open');
+}
+document.getElementById('alloc-modal').addEventListener('click', e => {
+  if (e.target === document.getElementById('alloc-modal')) closeAllocModal();
+});
+// ──────────────────────────────────────────────────────
 
 let pieChart;
 let _pieDrillMode = null; // null=總覽, 'tw'/'us'/'crypto'
+let _pieLastMode = undefined; // 上次 mode，用來判斷是否需要 destroy
 
 function renderPieChart(drillType) {
+  const prevMode = _pieDrillMode;
   _pieDrillMode = drillType || null;
   const canvas = document.getElementById('pieChart');
   if (!canvas) return;
+  // 切換模式時才 destroy（避免 canvas 尺寸被重置）
+  if (pieChart && prevMode !== _pieDrillMode) {
+    pieChart.destroy();
+    pieChart = null;
+  }
 
   let labels, values, colors, total;
 
@@ -2535,54 +2754,72 @@ function renderPieChart(drillType) {
     values = [tw, us, cr, cash];
     colors = ['#f6c90e', '#4a9eff', '#a78bfa', '#34d399'];
   } else {
-    // Drill-down 模式：顯示該板塊個股，同色系漸層
+    // Drill-down 模式：顯示該板塊個股
     const isTW = _pieDrillMode === 'tw';
     const data = _pieDrillMode === 'tw' ? RAW.twHoldings
                : _pieDrillMode === 'us' ? RAW.usHoldings
                : RAW.cryptoHoldings;
     const rows = data.filter(h => !h.isTotal && h.price != null);
-    if (!rows.length) return;
+    if (!rows.length) {
+      // 空板塊：顯示「無持倉」並更新配置列
+      const legendEl = document.getElementById('pie-legend');
+      if (legendEl) legendEl.innerHTML = `<div style="color:#4a5568;font-size:12px">無持倉資料</div>
+        <div style="margin-top:8px"><button onclick="renderPieChart(null)" style="background:none;border:1px solid #2e3342;border-radius:5px;color:#4a9eff;font-size:11px;padding:3px 10px;cursor:pointer">← 返回總覽</button></div>`;
+      renderAllocBars();
+      return;
+    }
     total  = rows.reduce((s, h) => s + h.price * h.shares * (isTW ? 1 : usdtwd), 0);
     if (total <= 0) return;
-    labels = rows.map(h => h.code); // 只顯示代號
+    labels = rows.map(h => h.code.replace('.TW',''));
     values = rows.map(h => h.price * h.shares * (isTW ? 1 : usdtwd));
     const palette = ['#4a9eff','#34d399','#f6c90e','#f87171','#a78bfa','#fb923c','#2dd4bf','#e879f9','#60a5fa','#a3e635'];
     colors = rows.map((_, i) => palette[i % palette.length]);
   }
 
-  if (pieChart) pieChart.destroy();
-  pieChart = new Chart(canvas.getContext('2d'), {
-    type: 'doughnut',
-    data: {
-      labels,
-      datasets: [{ data: values, backgroundColor: colors, borderWidth: 0, hoverOffset: 6 }]
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      cutout: '62%',
-      onClick: (e, elements) => {
-        if (_pieDrillMode) return; // 已在 drill-down，不再往下
-        if (!elements.length) return;
-        const idx = elements[0].index;
-        const typeMap = { 0: 'tw', 1: 'us', 2: 'crypto', 3: null };
-        const t = typeMap[idx];
-        if (t) renderPieChart(t);
+  if (pieChart) {
+    pieChart.data.labels = labels;
+    pieChart.data.datasets[0].data = values;
+    pieChart.data.datasets[0].backgroundColor = colors;
+    // tooltip 需要 total，透過 closure 更新
+    pieChart._totalRef = total;
+    pieChart.update('none');
+  } else {
+    let totalRef = total;
+    pieChart = new Chart(canvas.getContext('2d'), {
+      type: 'doughnut',
+      data: {
+        labels,
+        datasets: [{ data: values, backgroundColor: colors, borderWidth: 0, hoverOffset: 6 }]
       },
-      plugins: {
-        legend: { display: false },
-        tooltip: {
-          callbacks: {
-            label: ctx => {
-              const val = ctx.raw;
-              const pct = (val / total * 100).toFixed(1);
-              return ` ${fmtVal(val)} (${pct}%)`;
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        cutout: '62%',
+        onClick: (e, elements) => {
+          if (_pieDrillMode) return;
+          if (!elements.length) return;
+          const idx = elements[0].index;
+          const typeMap = { 0: 'tw', 1: 'us', 2: 'crypto', 3: null };
+          const t = typeMap[idx];
+          if (t) renderPieChart(t);
+        },
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            callbacks: {
+              label: ctx => {
+                const val = ctx.raw;
+                const t = pieChart._totalRef || totalRef;
+                const pct = (val / t * 100).toFixed(1);
+                return ` ${fmtVal(val)} (${pct}%)`;
+              }
             }
           }
         }
       }
-    }
-  });
+    });
+    pieChart._totalRef = total;
+  }
 
   const legendEl = document.getElementById('pie-legend');
   if (legendEl) {
@@ -2591,7 +2828,6 @@ function renderPieChart(drillType) {
            <button onclick="renderPieChart(null)" style="background:none;border:1px solid #2e3342;border-radius:5px;color:#4a9eff;font-size:11px;padding:3px 10px;cursor:pointer">← 返回總覽</button>
          </div>`
       : '';
-    // drill-down 時取對應 rows 的全名做 tooltip
     const drillRows = _pieDrillMode
       ? (_pieDrillMode === 'tw' ? RAW.twHoldings : _pieDrillMode === 'us' ? RAW.usHoldings : RAW.cryptoHoldings)
           .filter(h => !h.isTotal && h.price != null)
@@ -2600,7 +2836,6 @@ function renderPieChart(drillType) {
     legendEl.innerHTML = backBtn + labels.map((l, i) => {
       const pct = (values[i] / total * 100).toFixed(1);
       if (!_pieDrillMode) {
-        // 總覽：可點擊 drill-down
         const clickable = i < 3
           ? `style="cursor:pointer" onclick="renderPieChart('${['tw','us','crypto'][i]}')" title="點擊查看個股"` : '';
         return `<div class="pie-legend-item" ${clickable}>
@@ -2609,7 +2844,6 @@ function renderPieChart(drillType) {
           <span class="pie-legend-pct">${pct}%</span>
         </div>`;
       } else {
-        // drill-down：代號 + % ，hover 顯示全名
         const fullName = drillRows[i]?.name || '';
         return `<div class="pie-legend-item" title="${fullName}">
           <span class="pie-legend-dot" style="background:${colors[i]}"></span>
@@ -2619,6 +2853,7 @@ function renderPieChart(drillType) {
       }
     }).join('');
   }
+  renderAllocBars();
 }
 
 function addHolding() {
@@ -3117,6 +3352,7 @@ function renderDebtPage() {
 // 初始化：先從 localStorage 載入，再嘗試從雲端同步
 loadLedger();
 loadDebts();
+loadAlloc();
 const DATA_VERSION = 4;
 if (parseInt(localStorage.getItem('dashboard_data_version') || '0') < DATA_VERSION) {
   localStorage.removeItem(STORAGE_KEY);
