@@ -94,21 +94,25 @@
   tr:last-child td:first-child { color: #e2e8f0; }
   .pos { color: #3dd68c; }
   .neg { color: #f56565; }
+  .neu { color: #f59e0b; }
 
-  .monitor-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; margin-bottom: 20px; }
-  .monitor-section { background: #1a1d26; border-radius: 10px; padding: 16px 20px; border: 1px solid #252830; }
+  .monitor-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; margin-bottom: 20px; align-items: stretch; }
+  .monitor-row > * { display: flex; flex-direction: column; }
+  .monitor-section { background: #1a1d26; border-radius: 10px; padding: 16px 20px; border: 1px solid #252830; display: flex; flex-direction: column; }
   .monitor-title { font-size: 12px; font-weight: 600; color: #7a8499; margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.05em; }
-  .monitor-grid { display: grid; grid-template-columns: 1fr; gap: 8px; }
-  .monitor-item { text-align: center; padding: 10px 8px; background: #13161d; border-radius: 8px; border: 1px solid #1e2230; }
-  .monitor-label { font-size: 10px; color: #4a5568; margin-bottom: 4px; }
-  .monitor-value { font-size: 15px; font-weight: 700; color: #c8d0e0; }
+  .monitor-grid { display: flex; flex-direction: column; flex: 1; }
+  .monitor-subrow { display: contents; }
+  .monitor-item { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #1e2230; flex: 1; min-height: 0; }
+  .monitor-item.no-border { border-bottom: none; }
+  .monitor-label { font-size: 13px; color: #7a8499; }
+  .monitor-value { font-size: 14px; font-weight: 700; color: #c8d0e0; text-align: right; word-break: break-word; max-width: 65%; }
   .monitor-value.warn { color: #f59e0b; }
   .monitor-value.ok { color: #3dd68c; }
   .monitor-value.danger { color: #f56565; }
 
   .index-section { background: #1a1d26; border-radius: 10px; padding: 16px 20px; border: 1px solid #252830; }
   .index-title { font-size: 12px; font-weight: 600; color: #7a8499; margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.05em; }
-  .index-item { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid #1e2230; }
+  .index-item { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid #1e2230; min-height: 52px; }
   .index-item:last-child { border-bottom: none; }
   .index-name { font-size: 13px; color: #7a8499; font-weight: 500; }
   .index-right { text-align: right; }
@@ -297,6 +301,8 @@
     <div class="index-section">
       <div class="index-title">📈 大盤即時<span class="holding-update" id="index-update"></span></div>
       <div id="index-list"></div>
+      <div style="border-top:1px solid #252830;margin:10px 0"></div>
+      <div id="market-risk-list"></div>
     </div>
     <div class="index-section">
       <div class="index-title">💱 匯率<span class="holding-update" id="fx-update"></span></div>
@@ -2303,21 +2309,72 @@ function saveMonitorSettings() {
   renderMonitor();
 }
 
+function calcConcentration() {
+  const stockHoldings = [
+    ...RAW.twHoldings.filter(h => !h.isTotal).map(h => ({ code: h.code.replace('.TW',''), val: (h.price||0) * h.shares })),
+    ...RAW.usHoldings.filter(h => !h.isTotal).map(h => ({ code: h.code, val: (h.price||0) * h.shares * usdtwd })),
+    ...RAW.cryptoHoldings.filter(h => !h.isTotal).map(h => ({ code: h.code.replace('-USD',''), val: (h.price||0) * h.shares * usdtwd })),
+  ];
+  const totalStock = stockHoldings.reduce((s, h) => s + h.val, 0);
+  if (!totalStock) return [];
+  return stockHoldings
+    .map(h => ({ code: h.code, pct: h.val / totalStock * 100 }))
+    .filter(h => h.pct > 35)
+    .sort((a, b) => b.pct - a.pct);
+}
+
+function calcDrawdown() {
+  const history = getMergedHistory();
+  if (!history.length) return null;
+  const peakVal = Math.max(...history.map(r => r[4]));
+  const current = RAW.summary.totalAssets - totalCashTWD();
+  if (!peakVal || !current) return null;
+  return (current - peakVal) / peakVal * 100;
+}
+
 function renderMonitor() {
   const d = RAW.summary;
   const ms = monitorSettings;
   const risk = evalRiskStatus(d);
-  const items = [
+
+  // 第一行：槓桿風控
+  const row1 = [
     { label: '風控狀態',     value: risk.label,                cls: risk.cls },
     { label: '槓桿率',       value: d.leverageRate + '%',      cls: d.leverageRate > ms.levDanger ? 'danger' : d.leverageRate > ms.levWarn ? 'warn' : 'ok' },
     { label: '有效曝險槓桿', value: d.effectiveLeverage + '%', cls: d.effectiveLeverage > ms.effDanger ? 'danger' : d.effectiveLeverage > ms.effWarn ? 'warn' : 'ok' },
   ];
-  document.getElementById('monitor-grid').innerHTML = items.map(i => `
-    <div class="monitor-item">
+
+  // 第二行：持倉集中度 + 回撤
+  const conc = calcConcentration();
+  const dd = calcDrawdown();
+  let concValue, concCls;
+  if (!conc.length) {
+    concValue = '分散良好'; concCls = 'ok';
+  } else {
+    const hasDanger = conc.some(h => h.pct > 50);
+    const list = hasDanger ? conc.filter(h => h.pct > 50) : conc;
+    concValue = list.map(h => `${h.code} (${h.pct.toFixed(1)}%)`).join('、');
+    concCls = hasDanger ? 'danger' : 'warn';
+  }
+  const ddValue = dd === null ? '—' : dd >= -0.5 ? '歷史新高' : dd.toFixed(1) + '%';
+  const ddCls = dd === null ? '' : dd >= -0.5 ? 'ok' : dd < -15 ? 'danger' : dd < -10 ? 'warn' : 'ok';
+  const row2 = [
+    { label: '持倉集中度', value: concValue, cls: concCls },
+    { label: '淨值回撤',   value: ddValue,   cls: ddCls },
+  ];
+
+  const renderRow = (items, isLast) => items.map((i, idx) => {
+    const noBorder = isLast && idx === items.length - 1 ? ' no-border' : '';
+    return `<div class="monitor-item${noBorder}">
       <div class="monitor-label">${i.label}</div>
       <div class="monitor-value ${i.cls}">${i.value}</div>
-    </div>
-  `).join('');
+    </div>`;
+  }).join('');
+
+  document.getElementById('monitor-grid').innerHTML = `
+    <div class="monitor-subrow">${renderRow(row1, false)}</div>
+    <div class="monitor-subrow">${renderRow(row2, true)}</div>
+  `;
 }
 
 // ── 每日自動記錄淨值到 localStorage ──────────────────────────────
@@ -2557,12 +2614,41 @@ function buildIndexHTML(results) {
 
 let _lastIdxPrices = {};
 let _lastFxPrices = {};
+let _marketRisk = { vix: null, oil: null };
 
 async function refreshIndices() {
-  const [idxResults, fxResults] = await Promise.all([
+  const MARKET_RISK_SYMBOLS = [
+    { symbol: '^VIX', key: 'vix' },
+    { symbol: 'BZ=F', key: 'oil' },
+  ];
+  const [idxResults, fxResults, mrResults] = await Promise.all([
     Promise.all(INDICES.map(i => fetchUSPrice(i.symbol).then(r => ({ ...i, r })))),
     Promise.all(FX_LIST.map(i => fetchUSPrice(i.symbol).then(r => ({ ...i, r })))),
+    Promise.all(MARKET_RISK_SYMBOLS.map(i => fetchUSPrice(i.symbol).then(r => ({ ...i, r })))),
   ]);
+  mrResults.forEach(({ key, r }) => { if (r) _marketRisk[key] = r.price; });
+  const vix = _marketRisk.vix;
+  const oil = _marketRisk.oil;
+  const vixCls = vix === null ? '' : vix > 30 ? 'neg' : vix > 20 ? 'neu' : 'pos';
+  const oilCls = oil === null ? '' : oil > 140 ? 'neg' : oil > 120 ? 'neu' : 'pos';
+  const mrItems = [
+    { label: 'VIX 恐慌指數', r: mrResults.find(m => m.key === 'vix')?.r, cls: vixCls },
+    { label: '布蘭特原油',   r: mrResults.find(m => m.key === 'oil')?.r, cls: oilCls },
+  ];
+  const mrHTML = mrItems.map(({ label, r, cls }) => {
+    if (!r) return `<div class="index-item"><span class="index-name">${label}</span><span class="index-right"><span class="index-price">—</span></span></div>`;
+    const changeStr = (r.change >= 0 ? '+' : '') + r.change.toFixed(2) + ' (' + (r.changePct >= 0 ? '+' : '') + r.changePct.toFixed(2) + '%)';
+    const changeCls = r.change >= 0 ? 'pos' : 'neg';
+    return `<div class="index-item">
+      <span class="index-name">${label}</span>
+      <span class="index-right">
+        <div class="index-price ${cls}">${r.price.toLocaleString(undefined, {maximumFractionDigits: 2})}</div>
+        <div class="index-change ${changeCls}">${changeStr}</div>
+      </span>
+    </div>`;
+  }).join('');
+  document.getElementById('market-risk-list').innerHTML = mrHTML;
+  renderMonitor();
   document.getElementById('index-list').innerHTML = buildIndexHTML(idxResults);
   document.getElementById('fx-list').innerHTML = buildIndexHTML(fxResults);
   const fmtT = t => t.toLocaleString('zh-TW', { month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit' });
