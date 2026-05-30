@@ -9,14 +9,30 @@
   * { margin: 0; padding: 0; box-sizing: border-box; }
   body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #13161d; display: flex; min-height: 100vh; color: #e2e8f0; }
 
-  .sidebar { width: 200px; background: #1a1d26; color: #fff; padding: 24px 0; flex-shrink: 0; display: flex; flex-direction: column; border-right: 1px solid #252830; }
-  .sidebar-logo { padding: 0 20px 24px; font-size: 16px; font-weight: 700; color: #fff; border-bottom: 1px solid #252830; }
-  .sidebar-logo span { color: #4a9eff; }
+  .sidebar-wrap { display: flex; flex-shrink: 0; }
+  .sidebar { width: 200px; background: #1a1d26; color: #fff; padding: 24px 0; display: flex; flex-direction: column; border-right: 1px solid #252830; transition: width .25s ease; overflow: hidden; }
+  .sidebar.collapsed { width: 52px; }
+  .sidebar-logo { padding: 0 17px 24px; font-size: 16px; font-weight: 700; color: #fff; border-bottom: 1px solid #252830; display: flex; align-items: center; justify-content: space-between; white-space: nowrap; }
+  .sidebar.collapsed .sidebar-logo { display: none; }
+  .sidebar-toggle { background: none; border: none; color: #4a5568; cursor: pointer; font-size: 13px; padding: 4px; flex-shrink: 0; transition: color .15s; }
+  .sidebar-toggle:hover { color: #c8d0e0; }
+  .sidebar-expand { display: none; padding: 12px 0 12px; text-align: center; border-bottom: 1px solid #252830; position: relative; }
+  .sidebar.collapsed .sidebar-expand { display: block; }
+  .sidebar-expand button { background: #252a38; border: 1px solid #2e3342; border-radius: 8px; color: #7a8499; cursor: pointer; font-size: 14px; padding: 6px 8px; transition: color .15s, background .15s; width: 34px; height: 34px; display: inline-flex; align-items: center; justify-content: center; }
+  .sidebar-expand button:hover { color: #c8d0e0; background: #2e3448; }
+  .sidebar-expand .expand-tooltip { position: absolute; left: 52px; top: 50%; transform: translateY(-50%); background: #2e3448; color: #c8d0e0; font-size: 12px; padding: 5px 10px; border-radius: 6px; white-space: nowrap; pointer-events: none; opacity: 0; transition: opacity .15s; border: 1px solid #3a4260; }
+  .sidebar-expand button:hover + .expand-tooltip,
+  .sidebar-expand:hover .expand-tooltip { opacity: 1; }
   .sidebar-nav { padding: 16px 0; flex: 1; }
-  .nav-item { padding: 10px 20px; cursor: pointer; color: #7a8499; font-size: 14px; display: flex; align-items: center; gap: 10px; transition: all 0.2s; }
+  .nav-item { padding: 10px 14px; padding-left: 17px; cursor: pointer; color: #7a8499; font-size: 14px; display: flex; align-items: center; gap: 10px; transition: all 0.2s; white-space: nowrap; overflow: hidden; border-left: 3px solid transparent; }
   .nav-item:hover { color: #e2e8f0; background: #22262f; }
   .nav-item.active { color: #4a9eff; background: rgba(74,158,255,0.08); border-left: 3px solid #4a9eff; }
-  .sidebar-footer { padding: 16px 20px; border-top: 1px solid #252830; font-size: 11px; color: #4a5568; line-height: 1.6; }
+  .nav-icon { width: 20px; text-align: center; flex-shrink: 0; }
+  .nav-item .nav-label { transition: opacity .2s, max-width .25s; max-width: 160px; overflow: hidden; }
+  .sidebar.collapsed .nav-label { opacity: 0; max-width: 0; }
+  .sidebar-footer { padding: 16px 14px; border-top: 1px solid #252830; font-size: 11px; color: #4a5568; line-height: 1.6; overflow: hidden; }
+  .sidebar-footer-text { transition: opacity .2s; white-space: nowrap; }
+  .sidebar.collapsed .sidebar-footer-text { opacity: 0; pointer-events: none; }
 
   .main { flex: 1; padding: 28px 32px; overflow-y: auto; }
   .page-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 24px; }
@@ -199,20 +215,31 @@
 </head>
 <body>
 
-<div class="sidebar">
-  <div class="sidebar-logo">💼 <span>資產</span>追蹤</div>
-  <nav class="sidebar-nav">
-    <div class="nav-item active" onclick="showPage('overview')">📊 資產總覽</div>
-    <div class="nav-item" onclick="showPage('debt')">💳 負債管理</div>
-  </nav>
-  <div class="sidebar-footer">
-    <div id="rate-status">匯率載入中...</div>
-    <div id="last-update" style="margin-top:4px"></div>
-    <div style="margin-top:8px;display:flex;align-items:center;justify-content:space-between">
-      <span id="sync-status" style="font-size:11px;color:#3dd68c">☁️ 同步中…</span>
-      <div style="display:flex;gap:4px">
-        <button onclick="syncSave()" style="background:none;border:1px solid #2e3342;border-radius:4px;color:#4a5568;font-size:10px;padding:2px 6px;cursor:pointer" title="手動同步">↑↓</button>
-        <button onclick="copyPhoneLink()" style="background:none;border:1px solid #2e3342;border-radius:4px;color:#4a5568;font-size:10px;padding:2px 6px;cursor:pointer" title="複製手機連結">📱</button>
+<div class="sidebar-wrap">
+  <div class="sidebar" id="sidebar">
+    <div class="sidebar-logo">
+      <span>💼 <span style="color:#4a9eff">資產</span>追蹤</span>
+      <button class="sidebar-toggle" id="sidebar-toggle-btn" onclick="toggleSidebar()" title="收合側欄">◀</button>
+    </div>
+    <div class="sidebar-expand">
+      <button onclick="toggleSidebar()">▶</button>
+      <span class="expand-tooltip">展開側欄</span>
+    </div>
+    <nav class="sidebar-nav">
+      <div class="nav-item active" onclick="showPage('overview')"><span class="nav-icon">📊</span><span class="nav-label">資產總覽</span></div>
+      <div class="nav-item" onclick="showPage('debt')"><span class="nav-icon">💳</span><span class="nav-label">負債管理</span></div>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="sidebar-footer-text">
+        <div id="rate-status">匯率載入中...</div>
+        <div id="last-update" style="margin-top:4px"></div>
+      </div>
+      <div style="margin-top:8px;display:flex;align-items:center;justify-content:space-between">
+        <span id="sync-status" class="sidebar-footer-text" style="font-size:11px;color:#3dd68c">☁️ 同步中…</span>
+        <div style="display:flex;gap:4px;flex-shrink:0">
+          <button onclick="syncSave()" style="background:none;border:1px solid #2e3342;border-radius:4px;color:#4a5568;font-size:10px;padding:2px 6px;cursor:pointer" title="手動同步">↑↓</button>
+          <button onclick="copyPhoneLink()" style="background:none;border:1px solid #2e3342;border-radius:4px;color:#4a5568;font-size:10px;padding:2px 6px;cursor:pointer" title="複製手機連結">📱</button>
+        </div>
       </div>
     </div>
   </div>
@@ -261,7 +288,10 @@
   <!-- 監控 + 大盤 + 匯率三欄 -->
   <div class="monitor-row">
     <div class="monitor-section">
-      <div class="monitor-title">📡 監控儀表板</div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+        <div class="monitor-title" style="margin-bottom:0">📡 監控儀表板</div>
+        <button onclick="openMonitorSettings()" style="background:none;border:1px solid #2e3342;border-radius:4px;color:#4a5568;font-size:10px;padding:2px 8px;cursor:pointer">⚙ 設定</button>
+      </div>
       <div class="monitor-grid" id="monitor-grid"></div>
     </div>
     <div class="index-section">
@@ -531,6 +561,65 @@
   </div>
 
   <!-- 帳本 Modal -->
+  <!-- 監控設定 Modal -->
+  <div class="modal-overlay" id="monitor-modal">
+    <div class="modal" style="width:460px;max-height:82vh;display:flex;flex-direction:column">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+        <h3 style="margin:0">監控設定</h3>
+        <button class="btn-cancel" onclick="closeMonitorSettings()" style="padding:4px 10px;font-size:12px;border-radius:6px;cursor:pointer">關閉</button>
+      </div>
+      <div style="overflow-y:auto;flex:1;display:flex;flex-direction:column;gap:18px">
+        <!-- 閾值設定 -->
+        <div>
+          <div style="font-size:11px;font-weight:600;color:#5a6780;letter-spacing:.5px;margin-bottom:10px">指標顏色閾值</div>
+          <div style="display:flex;flex-direction:column;gap:10px">
+            <div style="display:flex;align-items:center;justify-content:space-between">
+              <div><div style="font-size:13px;color:#c8d0e0">槓桿率 橘色警示</div><div style="font-size:11px;color:#5a6780">超過此值變橘</div></div>
+              <div style="display:flex;align-items:center;gap:6px">
+                <input id="ms-lev-warn" type="number" min="100" max="500" style="width:64px;background:#13161d;border:1px solid #2e3342;border-radius:6px;color:#e2e8f0;padding:5px 8px;font-size:13px;text-align:right">
+                <span style="color:#5a6780;font-size:12px">%</span>
+              </div>
+            </div>
+            <div style="display:flex;align-items:center;justify-content:space-between">
+              <div><div style="font-size:13px;color:#c8d0e0">槓桿率 紅色警示</div><div style="font-size:11px;color:#5a6780">超過此值變紅</div></div>
+              <div style="display:flex;align-items:center;gap:6px">
+                <input id="ms-lev-danger" type="number" min="100" max="500" style="width:64px;background:#13161d;border:1px solid #2e3342;border-radius:6px;color:#e2e8f0;padding:5px 8px;font-size:13px;text-align:right">
+                <span style="color:#5a6780;font-size:12px">%</span>
+              </div>
+            </div>
+            <div style="display:flex;align-items:center;justify-content:space-between">
+              <div><div style="font-size:13px;color:#c8d0e0">有效曝險槓桿 橘色警示</div><div style="font-size:11px;color:#5a6780">超過此值變橘</div></div>
+              <div style="display:flex;align-items:center;gap:6px">
+                <input id="ms-eff-warn" type="number" min="100" max="500" style="width:64px;background:#13161d;border:1px solid #2e3342;border-radius:6px;color:#e2e8f0;padding:5px 8px;font-size:13px;text-align:right">
+                <span style="color:#5a6780;font-size:12px">%</span>
+              </div>
+            </div>
+            <div style="display:flex;align-items:center;justify-content:space-between">
+              <div><div style="font-size:13px;color:#c8d0e0">有效曝險槓桿 紅色警示</div><div style="font-size:11px;color:#5a6780">超過此值變紅</div></div>
+              <div style="display:flex;align-items:center;gap:6px">
+                <input id="ms-eff-danger" type="number" min="100" max="500" style="width:64px;background:#13161d;border:1px solid #2e3342;border-radius:6px;color:#e2e8f0;padding:5px 8px;font-size:13px;text-align:right">
+                <span style="color:#5a6780;font-size:12px">%</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <!-- 風控狀態判斷規則 -->
+        <div>
+          <div style="font-size:11px;font-weight:600;color:#5a6780;letter-spacing:.5px;margin-bottom:8px">風控狀態判斷規則 <span style="font-weight:400;color:#4a5568">（由上往下，第一個符合的生效）</span></div>
+          <div id="ms-risk-rules" style="display:flex;flex-direction:column;gap:6px"></div>
+          <div style="display:flex;gap:8px;margin-top:8px">
+            <button class="btn" onclick="addRiskRule('danger')" style="font-size:11px;padding:3px 10px;color:#f87171;border-color:#3b1a1a">＋ 新增紅色規則</button>
+            <button class="btn" onclick="addRiskRule('warn')"   style="font-size:11px;padding:3px 10px;color:#f6c90e;border-color:#3b2e1a">＋ 新增橘色規則</button>
+          </div>
+        </div>
+      </div>
+      <div style="margin-top:16px;display:flex;gap:8px;justify-content:flex-end;border-top:1px solid #1e2535;padding-top:14px">
+        <button class="btn-cancel" onclick="closeMonitorSettings()">取消</button>
+        <button class="btn active" onclick="saveMonitorSettings()">儲存</button>
+      </div>
+    </div>
+  </div>
+
   <!-- 配置分類設定 Modal -->
   <div class="modal-overlay" id="alloc-modal">
     <div class="modal" style="width:520px;max-height:82vh;display:flex;flex-direction:column">
@@ -1753,6 +1842,15 @@ function toggleHoldingCurrency(type) {
   renderHoldings(null);
 }
 
+function toggleSidebar() {
+  const sb = document.getElementById('sidebar');
+  const btn = document.getElementById('sidebar-toggle-btn');
+  sb.classList.toggle('collapsed');
+  const isCollapsed = sb.classList.contains('collapsed');
+  btn.textContent = isCollapsed ? '▶' : '◀';
+  localStorage.setItem('sidebar_collapsed', isCollapsed ? '1' : '0');
+}
+
 function copyPhoneLink() {
   const sheetId = localStorage.getItem(SHEET_ID_KEY);
   if (!sheetId) { alert('尚未同步，請先點 ↑↓ 同步一次'); return; }
@@ -2111,12 +2209,108 @@ document.getElementById('edit-modal').addEventListener('click', e => {
   if (e.target === document.getElementById('edit-modal')) closeEditModal();
 });
 
+const MONITOR_SETTINGS_KEY = 'dashboard_monitor_settings_v1';
+const DEFAULT_MONITOR_SETTINGS = {
+  levWarn: 150, levDanger: 200,
+  effWarn: 200, effDanger: 300,
+  // 風控狀態判斷邏輯：條件陣列，由上往下第一個符合的生效
+  // 每條：{ label, cls, conditions: [{metric, op, val}] }
+  riskRules: [
+    { label: '🔴 高風險', cls: 'danger', conditions: [{ metric: 'leverageRate', op: '>', val: 200 }] },
+    { label: '🔴 高風險', cls: 'danger', conditions: [{ metric: 'effectiveLeverage', op: '>', val: 300 }] },
+    { label: '🟡 注意',   cls: 'warn',   conditions: [{ metric: 'leverageRate', op: '>', val: 150 }] },
+    { label: '🟡 注意',   cls: 'warn',   conditions: [{ metric: 'effectiveLeverage', op: '>', val: 200 }] },
+  ],
+};
+let monitorSettings = JSON.parse(JSON.stringify(DEFAULT_MONITOR_SETTINGS));
+
+function loadMonitorSettings() {
+  try {
+    const raw = localStorage.getItem(MONITOR_SETTINGS_KEY);
+    if (raw) monitorSettings = { ...DEFAULT_MONITOR_SETTINGS, ...JSON.parse(raw) };
+  } catch(e) {}
+}
+
+function evalRiskStatus(d) {
+  for (const rule of monitorSettings.riskRules) {
+    const match = rule.conditions.every(c => {
+      const v = d[c.metric] || 0;
+      return c.op === '>' ? v > c.val : v < c.val;
+    });
+    if (match) return { label: rule.label, cls: rule.cls };
+  }
+  return { label: '✅ 正常', cls: 'ok' };
+}
+
+function openMonitorSettings() {
+  document.getElementById('ms-lev-warn').value   = monitorSettings.levWarn;
+  document.getElementById('ms-lev-danger').value = monitorSettings.levDanger;
+  document.getElementById('ms-eff-warn').value   = monitorSettings.effWarn;
+  document.getElementById('ms-eff-danger').value = monitorSettings.effDanger;
+  renderRiskRules();
+  document.getElementById('monitor-modal').classList.add('open');
+}
+
+function closeMonitorSettings() {
+  document.getElementById('monitor-modal').classList.remove('open');
+}
+document.getElementById('monitor-modal').addEventListener('click', e => {
+  if (e.target === document.getElementById('monitor-modal')) closeMonitorSettings();
+});
+
+function renderRiskRules() {
+  const el = document.getElementById('ms-risk-rules');
+  const metrics = { leverageRate: '槓桿率', effectiveLeverage: '有效曝險槓桿' };
+  el.innerHTML = monitorSettings.riskRules.map((rule, i) => `
+    <div style="display:flex;align-items:center;gap:6px;padding:6px 8px;background:#13161d;border-radius:6px;border:1px solid #1e2230">
+      <select onchange="updateRiskRule(${i},'metric',this.value)" style="background:#1e2535;border:1px solid #2e3342;border-radius:4px;color:#c8d0e0;font-size:11px;padding:2px 4px">
+        ${Object.entries(metrics).map(([k,v]) => `<option value="${k}" ${rule.conditions[0].metric===k?'selected':''}>${v}</option>`).join('')}
+      </select>
+      <span style="color:#5a6780;font-size:11px">></span>
+      <input type="number" value="${rule.conditions[0].val}" onchange="updateRiskRule(${i},'val',this.value)"
+        style="width:56px;background:#1e2535;border:1px solid #2e3342;border-radius:4px;color:#c8d0e0;font-size:11px;padding:2px 6px;text-align:right">
+      <span style="color:#5a6780;font-size:11px">%</span>
+      <span style="font-size:11px;padding:2px 8px;border-radius:10px;${rule.cls==='danger'?'background:#3b1a1a;color:#f87171':rule.cls==='warn'?'background:#3b2e1a;color:#f6c90e':'background:#1a3b2a;color:#34d399'}">${rule.label}</span>
+      <button onclick="removeRiskRule(${i})" style="margin-left:auto;background:none;border:none;color:#4a5568;cursor:pointer;font-size:13px">✕</button>
+    </div>`).join('');
+}
+
+function updateRiskRule(i, field, value) {
+  if (field === 'metric') monitorSettings.riskRules[i].conditions[0].metric = value;
+  if (field === 'val') monitorSettings.riskRules[i].conditions[0].val = parseFloat(value);
+}
+
+function removeRiskRule(i) {
+  monitorSettings.riskRules.splice(i, 1);
+  renderRiskRules();
+}
+
+function addRiskRule(cls) {
+  const metric = cls === 'danger' ? 'leverageRate' : 'effectiveLeverage';
+  const val    = cls === 'danger' ? 200 : 200;
+  const label  = cls === 'danger' ? '🔴 高風險' : '🟡 注意';
+  monitorSettings.riskRules.push({ label, cls, conditions: [{ metric, op: '>', val }] });
+  renderRiskRules();
+}
+
+function saveMonitorSettings() {
+  monitorSettings.levWarn   = parseInt(document.getElementById('ms-lev-warn').value)   || DEFAULT_MONITOR_SETTINGS.levWarn;
+  monitorSettings.levDanger = parseInt(document.getElementById('ms-lev-danger').value) || DEFAULT_MONITOR_SETTINGS.levDanger;
+  monitorSettings.effWarn   = parseInt(document.getElementById('ms-eff-warn').value)   || DEFAULT_MONITOR_SETTINGS.effWarn;
+  monitorSettings.effDanger = parseInt(document.getElementById('ms-eff-danger').value) || DEFAULT_MONITOR_SETTINGS.effDanger;
+  localStorage.setItem(MONITOR_SETTINGS_KEY, JSON.stringify(monitorSettings));
+  closeMonitorSettings();
+  renderMonitor();
+}
+
 function renderMonitor() {
   const d = RAW.summary;
+  const ms = monitorSettings;
+  const risk = evalRiskStatus(d);
   const items = [
-    { label: '風控狀態', value: d.riskStatus, cls: 'ok' },
-    { label: '槓桿率', value: d.leverageRate + '%', cls: d.leverageRate > 200 ? 'danger' : d.leverageRate > 150 ? 'warn' : 'ok' },
-    { label: '有效曝險槓桿', value: d.effectiveLeverage + '%', cls: d.effectiveLeverage > 200 ? 'warn' : 'ok' },
+    { label: '風控狀態',     value: risk.label,                cls: risk.cls },
+    { label: '槓桿率',       value: d.leverageRate + '%',      cls: d.leverageRate > ms.levDanger ? 'danger' : d.leverageRate > ms.levWarn ? 'warn' : 'ok' },
+    { label: '有效曝險槓桿', value: d.effectiveLeverage + '%', cls: d.effectiveLeverage > ms.effDanger ? 'danger' : d.effectiveLeverage > ms.effWarn ? 'warn' : 'ok' },
   ];
   document.getElementById('monitor-grid').innerHTML = items.map(i => `
     <div class="monitor-item">
@@ -3350,9 +3544,14 @@ function renderDebtPage() {
 }
 
 // 初始化：先從 localStorage 載入，再嘗試從雲端同步
+if (localStorage.getItem('sidebar_collapsed') === '1') {
+  document.getElementById('sidebar').classList.add('collapsed');
+  document.getElementById('sidebar-toggle-btn').textContent = '▶';
+}
 loadLedger();
 loadDebts();
 loadAlloc();
+loadMonitorSettings();
 const DATA_VERSION = 4;
 if (parseInt(localStorage.getItem('dashboard_data_version') || '0') < DATA_VERSION) {
   localStorage.removeItem(STORAGE_KEY);
