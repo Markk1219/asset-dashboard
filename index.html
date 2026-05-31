@@ -874,6 +874,7 @@
   <div style="display:flex;gap:0;margin-bottom:20px;border-bottom:1px solid #252830">
     <button id="rt-tab-1" onclick="switchRtTab(1)" style="padding:10px 20px;background:none;border:none;border-bottom:2px solid #4a9eff;color:#4a9eff;font-size:14px;font-weight:600;cursor:pointer">需要多少報酬率？</button>
     <button id="rt-tab-2" onclick="switchRtTab(2)" style="padding:10px 20px;background:none;border:none;border-bottom:2px solid transparent;color:#5a6780;font-size:14px;font-weight:600;cursor:pointer">資產成長模擬</button>
+    <button id="rt-tab-3" onclick="switchRtTab(3)" style="padding:10px 20px;background:none;border:none;border-bottom:2px solid transparent;color:#5a6780;font-size:14px;font-weight:600;cursor:pointer">股價試算</button>
   </div>
   <div style="display:grid;grid-template-columns:360px 1fr;gap:20px;align-items:start">
     <!-- 左：共用輸入 -->
@@ -916,6 +917,22 @@
           <input type="number" id="rt-sim-years" value="20" min="1" max="50" style="width:100%;padding:9px 12px;border:1px solid #2e3342;border-radius:7px;font-size:14px;background:#13161d;color:#e2e8f0;outline:none">
         </div>
         <button onclick="calcGrowthSim()" style="width:100%;padding:11px;background:#1a3858;color:#a78bfa;border:1px solid #a78bfa;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer">開始模擬</button>
+      </div>
+      <!-- 模式三專屬 -->
+      <div id="rt-mode3-inputs" style="display:none">
+        <div class="form-group">
+          <label>買進價格</label>
+          <input type="number" id="rt-sp-buy" value="" min="0" step="0.01" placeholder="例：150.00" style="width:100%;padding:9px 12px;border:1px solid #2e3342;border-radius:7px;font-size:14px;background:#13161d;color:#e2e8f0;outline:none">
+        </div>
+        <div class="form-group">
+          <label>股數</label>
+          <input type="number" id="rt-sp-shares" value="" min="0" step="0.0001" placeholder="例：100" style="width:100%;padding:9px 12px;border:1px solid #2e3342;border-radius:7px;font-size:14px;background:#13161d;color:#e2e8f0;outline:none">
+        </div>
+        <div class="form-group">
+          <label>目標賣出價格</label>
+          <input type="number" id="rt-sp-target" value="" min="0" step="0.01" placeholder="例：200.00" style="width:100%;padding:9px 12px;border:1px solid #2e3342;border-radius:7px;font-size:14px;background:#13161d;color:#e2e8f0;outline:none">
+        </div>
+        <button onclick="calcStockPrice()" style="width:100%;padding:11px;background:#1a3d2e;color:#3dd68c;border:1px solid #3dd68c;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer">計算</button>
       </div>
     </div>
     <!-- 右：結果區 -->
@@ -979,6 +996,29 @@
               </thead>
               <tbody id="rt-tbody-sim"></tbody>
             </table>
+          </div>
+        </div>
+      </div>
+      <!-- 模式三結果 -->
+      <div id="rt-result-stock" style="display:none">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
+          <div class="card" style="text-align:center">
+            <div class="card-label">買進總成本</div>
+            <div class="card-value" id="rt-sp-cost" style="font-size:26px">—</div>
+          </div>
+          <div class="card" style="text-align:center">
+            <div class="card-label">目標總值</div>
+            <div class="card-value" id="rt-sp-total" style="font-size:26px;color:#3dd68c">—</div>
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+          <div class="card" style="text-align:center">
+            <div class="card-label">獲利金額</div>
+            <div class="card-value" id="rt-sp-profit" style="font-size:26px;color:#3dd68c">—</div>
+          </div>
+          <div class="card" style="text-align:center">
+            <div class="card-label">報酬率</div>
+            <div class="card-value" id="rt-sp-pct" style="font-size:26px;color:#3dd68c">—</div>
           </div>
         </div>
       </div>
@@ -3618,6 +3658,7 @@ function calcReturnRate() {
   const rows = simulateGrowth(current, monthly, r, years, lumps);
   document.getElementById('rt-result-rate').style.display = '';
   document.getElementById('rt-result-sim').style.display = 'none';
+  document.getElementById('rt-result-stock').style.display = 'none';
   document.getElementById('rt-placeholder').style.display = 'none';
   document.getElementById('rt-rate-result').textContent = (r * 100).toFixed(2) + '%';
   document.getElementById('rt-final-assets').textContent = fmtWan(rows[rows.length - 1].end);
@@ -3625,12 +3666,17 @@ function calcReturnRate() {
 }
 
 function switchRtTab(tab) {
-  document.getElementById('rt-tab-1').style.cssText = `padding:10px 20px;background:none;border:none;border-bottom:2px solid ${tab===1?'#4a9eff':'transparent'};color:${tab===1?'#4a9eff':'#5a6780'};font-size:14px;font-weight:600;cursor:pointer`;
-  document.getElementById('rt-tab-2').style.cssText = `padding:10px 20px;background:none;border:none;border-bottom:2px solid ${tab===2?'#a78bfa':'transparent'};color:${tab===2?'#a78bfa':'#5a6780'};font-size:14px;font-weight:600;cursor:pointer`;
+  const colors = { 1: '#4a9eff', 2: '#a78bfa', 3: '#3dd68c' };
+  [1, 2, 3].forEach(i => {
+    const c = tab === i ? colors[i] : '#5a6780';
+    document.getElementById(`rt-tab-${i}`).style.cssText = `padding:10px 20px;background:none;border:none;border-bottom:2px solid ${tab===i?colors[i]:'transparent'};color:${c};font-size:14px;font-weight:600;cursor:pointer`;
+  });
   document.getElementById('rt-mode1-inputs').style.display = tab === 1 ? '' : 'none';
   document.getElementById('rt-mode2-inputs').style.display = tab === 2 ? '' : 'none';
+  document.getElementById('rt-mode3-inputs').style.display = tab === 3 ? '' : 'none';
   document.getElementById('rt-result-rate').style.display = 'none';
   document.getElementById('rt-result-sim').style.display = 'none';
+  document.getElementById('rt-result-stock').style.display = 'none';
   document.getElementById('rt-placeholder').style.display = '';
 }
 
@@ -3649,11 +3695,40 @@ function calcGrowthSim() {
 
   document.getElementById('rt-result-sim').style.display = '';
   document.getElementById('rt-result-rate').style.display = 'none';
+  document.getElementById('rt-result-stock').style.display = 'none';
   document.getElementById('rt-placeholder').style.display = 'none';
   document.getElementById('rt-sim-final').textContent = fmtWan(finalVal);
   document.getElementById('rt-sim-cost').textContent = fmtWan(totalCost);
   buildYearTable('rt-tbody-sim', rows);
 }
+
+function calcStockPrice() {
+  const buy    = parseFloat(document.getElementById('rt-sp-buy').value);
+  const shares = parseFloat(document.getElementById('rt-sp-shares').value);
+  const target = parseFloat(document.getElementById('rt-sp-target').value);
+  if (!buy || !shares || !target) return;
+
+  const cost   = buy * shares;
+  const total  = target * shares;
+  const profit = total - cost;
+  const pct    = (profit / cost) * 100;
+  const fmtNum = n => n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const pnlCls = profit >= 0 ? '#3dd68c' : '#f56565';
+
+  document.getElementById('rt-sp-cost').textContent   = fmtNum(cost);
+  document.getElementById('rt-sp-total').textContent  = fmtNum(total);
+  document.getElementById('rt-sp-profit').textContent = (profit >= 0 ? '+' : '') + fmtNum(profit);
+  document.getElementById('rt-sp-pct').textContent    = (pct >= 0 ? '+' : '') + pct.toFixed(2) + '%';
+  document.getElementById('rt-sp-profit').style.color = pnlCls;
+  document.getElementById('rt-sp-pct').style.color    = pnlCls;
+  document.getElementById('rt-sp-total').style.color  = pnlCls;
+
+  document.getElementById('rt-result-stock').style.display = '';
+  document.getElementById('rt-result-rate').style.display  = 'none';
+  document.getElementById('rt-result-sim').style.display   = 'none';
+  document.getElementById('rt-placeholder').style.display  = 'none';
+}
+
 document.addEventListener('input', e => {
   if (e.target.id === 's-shares' || e.target.id === 's-price') updateSellPreview();
 });
