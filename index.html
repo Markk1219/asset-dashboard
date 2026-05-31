@@ -48,7 +48,11 @@
   .card { background: #1a1d26; border-radius: 10px; padding: 18px 20px; border: 1px solid #252830; }
   .card-label { font-size: 13px; color: #7a8499; margin-bottom: 10px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.04em; }
   .card-value { font-size: 28px; font-weight: 700; color: #e2e8f0; }
-  body.privacy-mode .private { filter: blur(10px); user-select: none; pointer-events: none; }
+  body.privacy-mode .private { color: transparent !important; user-select: none; }
+  body.privacy-mode .private::after { content: '••••••'; color: #5a6780; letter-spacing: 3px; font-size: 13px; }
+  body.privacy-mode .card-value.private { font-size: 0 !important; line-height: 0; }
+  body.privacy-mode .card-value.private::after { content: '••••••'; font-size: 24px; letter-spacing: 5px; line-height: 1.3; display: block; color: #5a6780; }
+  #privacy-btn { padding: 0; width: 40px; min-width: 40px; height: 36px; display: flex; align-items: center; justify-content: center; font-size: 18px; border-radius: 8px; }
   .card-value.positive { color: #3dd68c; }
   .card-value.negative { color: #f56565; }
   .card-sub { font-size: 14px; color: #7a8499; margin-top: 8px; }
@@ -263,7 +267,10 @@
     <div class="header-actions">
       <button class="btn" id="refresh-btn" onclick="manualRefresh()" title="重新整理股價">↻ 更新</button>
       <button class="btn" onclick="openLedgerModal()">📒 帳本</button>
-      <button class="btn" id="privacy-btn" onclick="togglePrivacy()" title="隱藏/顯示資產">👁</button>
+      <button class="btn" id="privacy-btn" onclick="togglePrivacy()" title="隱藏/顯示資產">
+        <svg id="privacy-icon-show" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+        <svg id="privacy-icon-hide" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+      </button>
       <button class="btn active" id="currency-btn" onclick="toggleCurrency()">TWD</button>
     </div>
   </div>
@@ -2051,16 +2058,18 @@ function toggleHoldingCurrency(type) {
 }
 
 let _privacyMode = localStorage.getItem('privacy_mode') === '1';
-function applyPrivacy() {
+function applyPrivacy(rerender = true) {
   document.body.classList.toggle('privacy-mode', _privacyMode);
-  document.getElementById('privacy-btn').textContent = _privacyMode ? '🙈' : '👁';
+  document.getElementById('privacy-icon-show').style.display = _privacyMode ? 'none' : '';
+  document.getElementById('privacy-icon-hide').style.display = _privacyMode ? '' : 'none';
+  if (rerender) renderHoldings(null);
 }
 function togglePrivacy() {
   _privacyMode = !_privacyMode;
   localStorage.setItem('privacy_mode', _privacyMode ? '1' : '0');
   applyPrivacy();
 }
-applyPrivacy();
+applyPrivacy(false);
 
 function toggleSidebar() {
   const sb = document.getElementById('sidebar');
@@ -2207,6 +2216,9 @@ function renderHoldings(marketTimes) {
 
     const barColor = isTW ? '#fbbf24' : typeKey === 'us' ? '#4a9eff' : '#a78bfa';
 
+    const isPrivate = _privacyMode;
+    const mask = (val, cls='') => `<span class="${('private ' + cls).trim()}">${val}</span>`;
+
     el.innerHTML = sorted.map(h => {
       if (h.isTotal) {
         const mktValStr = sumMktVal > 0 ? (prefix + Math.round(sumMktVal).toLocaleString()) : '—';
@@ -2214,8 +2226,8 @@ function renderHoldings(marketTimes) {
         const pnlCls = sumPnl >= 0 ? 'pos' : 'neg';
         return `<tr>
           <td>總和</td><td>—</td><td>—</td><td>—</td>
-          <td style="font-weight:700">${mktValStr}</td>
-          <td class="${pnlCls}" style="font-weight:700">${pnlStr}</td>
+          <td style="font-weight:700">${mask(mktValStr)}</td>
+          <td class="${pnlCls}" style="font-weight:700">${mask(pnlStr, pnlCls)}</td>
           <td>—</td>
         </tr>`;
       }
@@ -2240,11 +2252,14 @@ function renderHoldings(marketTimes) {
         const mktValTWD = priceRaw * h.shares * (isTW ? 1 : usdtwd);
         const displayVal = mktValTWD * mktRate;
         const pct = totalValTWD > 0 ? (mktValTWD / totalValTWD * 100) : 0;
-        mktValDisplay = prefix + Math.round(displayVal).toLocaleString()
-          + `<div style="display:flex;align-items:center;gap:4px;margin-top:2px">`
-          + `<div style="flex:1;background:#1e2230;border-radius:2px;height:3px"><div style="background:${barColor};width:${Math.min(pct,100).toFixed(1)}%;height:3px;border-radius:2px"></div></div>`
-          + `<span style="font-size:10px;color:#4a5568;white-space:nowrap">${pct.toFixed(1)}%</span>`
-          + `</div>`;
+        const numStr = prefix + Math.round(displayVal).toLocaleString();
+        mktValDisplay = isPrivate
+          ? numStr
+          : numStr
+            + `<div style="display:flex;align-items:center;gap:4px;margin-top:2px">`
+            + `<div style="flex:1;background:#1e2230;border-radius:2px;height:3px"><div style="background:${barColor};width:${Math.min(pct,100).toFixed(1)}%;height:3px;border-radius:2px"></div></div>`
+            + `<span style="font-size:10px;color:#4a5568;white-space:nowrap">${pct.toFixed(1)}%</span>`
+            + `</div>`;
       }
 
       const pnlDisplay = Math.round((h.pnl || 0) * pnlRate);
@@ -2253,12 +2268,12 @@ function renderHoldings(marketTimes) {
 
       return `<tr>
         <td>${h.code}${nameHtml}</td>
-        <td>${sharesDisplay}</td>
-        <td>${avgDisplay}</td>
+        <td>${mask(sharesDisplay)}</td>
+        <td>${mask(avgDisplay)}</td>
         <td>${priceDisplay}</td>
-        <td>${mktValDisplay}</td>
-        <td class="${pnlCls}">${pnlStr}</td>
-        <td class="${h.pnlPct >= 0 ? 'pos' : 'neg'}">${h.pnlPct >= 0 ? '+' : ''}${fmt(h.pnlPct, 2)}%</td>
+        <td>${mask(mktValDisplay)}</td>
+        <td class="${pnlCls}">${mask(pnlStr, pnlCls)}</td>
+        <td class="${h.pnlPct >= 0 ? 'pos' : 'neg'}">${mask((h.pnlPct >= 0 ? '+' : '') + fmt(h.pnlPct, 2) + '%')}</td>
       </tr>`;
     }).join('');
 
