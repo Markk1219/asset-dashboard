@@ -879,21 +879,23 @@
   <div style="display:grid;grid-template-columns:360px 1fr;gap:20px;align-items:start">
     <!-- 左：共用輸入 -->
     <div class="card" style="padding:24px">
-      <div class="form-group">
-        <label>現在資產（萬元）</label>
-        <input type="number" id="rt-current" value="140" min="0" style="width:100%;padding:9px 12px;border:1px solid #2e3342;border-radius:7px;font-size:14px;background:#13161d;color:#e2e8f0;outline:none">
+      <div id="rt-shared-inputs">
+        <div class="form-group">
+          <label>現在資產（萬元）</label>
+          <input type="number" id="rt-current" value="140" min="0" style="width:100%;padding:9px 12px;border:1px solid #2e3342;border-radius:7px;font-size:14px;background:#13161d;color:#e2e8f0;outline:none">
+        </div>
+        <div class="form-group">
+          <label>每月定期定額（萬元，選填）</label>
+          <input type="number" id="rt-monthly" value="0" min="0" step="0.1" style="width:100%;padding:9px 12px;border:1px solid #2e3342;border-radius:7px;font-size:14px;background:#13161d;color:#e2e8f0;outline:none">
+        </div>
+        <div style="border-top:1px solid #252830;margin:14px 0"></div>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+          <span style="font-size:12px;color:#7a8499;font-weight:600;text-transform:uppercase;letter-spacing:0.04em">單次投入（選填）</span>
+          <button onclick="addLumpSum()" style="background:none;border:1px dashed #2e3342;border-radius:5px;color:#4a5568;font-size:11px;padding:2px 8px;cursor:pointer">+ 新增</button>
+        </div>
+        <div id="rt-lumpsum-list" style="display:flex;flex-direction:column;gap:6px;margin-bottom:4px"></div>
+        <div style="border-top:1px solid #252830;margin:14px 0"></div>
       </div>
-      <div class="form-group">
-        <label>每月定期定額（萬元，選填）</label>
-        <input type="number" id="rt-monthly" value="0" min="0" step="0.1" style="width:100%;padding:9px 12px;border:1px solid #2e3342;border-radius:7px;font-size:14px;background:#13161d;color:#e2e8f0;outline:none">
-      </div>
-      <div style="border-top:1px solid #252830;margin:14px 0"></div>
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
-        <span style="font-size:12px;color:#7a8499;font-weight:600;text-transform:uppercase;letter-spacing:0.04em">單次投入（選填）</span>
-        <button onclick="addLumpSum()" style="background:none;border:1px dashed #2e3342;border-radius:5px;color:#4a5568;font-size:11px;padding:2px 8px;cursor:pointer">+ 新增</button>
-      </div>
-      <div id="rt-lumpsum-list" style="display:flex;flex-direction:column;gap:6px;margin-bottom:4px"></div>
-      <div style="border-top:1px solid #252830;margin:14px 0"></div>
       <!-- 模式一專屬 -->
       <div id="rt-mode1-inputs">
         <div class="form-group">
@@ -920,8 +922,12 @@
       </div>
       <!-- 模式三專屬 -->
       <div id="rt-mode3-inputs" style="display:none">
+        <div style="display:flex;gap:8px;margin-bottom:16px">
+          <button id="rt-sp-cur-usd" onclick="setSpCurrency('USD')" style="flex:1;padding:8px;border-radius:7px;border:1px solid #4a9eff;background:#1a3a5c;color:#4a9eff;font-size:13px;font-weight:600;cursor:pointer">USD 美股</button>
+          <button id="rt-sp-cur-twd" onclick="setSpCurrency('TWD')" style="flex:1;padding:8px;border-radius:7px;border:1px solid #2e3342;background:none;color:#5a6780;font-size:13px;font-weight:600;cursor:pointer">TWD 台股</button>
+        </div>
         <div class="form-group">
-          <label>買進價格</label>
+          <label id="rt-sp-buy-label">買進價格（USD）</label>
           <input type="number" id="rt-sp-buy" value="" min="0" step="0.01" placeholder="例：150.00" style="width:100%;padding:9px 12px;border:1px solid #2e3342;border-radius:7px;font-size:14px;background:#13161d;color:#e2e8f0;outline:none">
         </div>
         <div class="form-group">
@@ -929,7 +935,7 @@
           <input type="number" id="rt-sp-shares" value="" min="0" step="0.0001" placeholder="例：100" style="width:100%;padding:9px 12px;border:1px solid #2e3342;border-radius:7px;font-size:14px;background:#13161d;color:#e2e8f0;outline:none">
         </div>
         <div class="form-group">
-          <label>目標賣出價格</label>
+          <label id="rt-sp-target-label">目標賣出價格（USD）</label>
           <input type="number" id="rt-sp-target" value="" min="0" step="0.01" placeholder="例：200.00" style="width:100%;padding:9px 12px;border:1px solid #2e3342;border-radius:7px;font-size:14px;background:#13161d;color:#e2e8f0;outline:none">
         </div>
         <button onclick="calcStockPrice()" style="width:100%;padding:11px;background:#1a3d2e;color:#3dd68c;border:1px solid #3dd68c;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer">計算</button>
@@ -3671,6 +3677,7 @@ function switchRtTab(tab) {
     const c = tab === i ? colors[i] : '#5a6780';
     document.getElementById(`rt-tab-${i}`).style.cssText = `padding:10px 20px;background:none;border:none;border-bottom:2px solid ${tab===i?colors[i]:'transparent'};color:${c};font-size:14px;font-weight:600;cursor:pointer`;
   });
+  document.getElementById('rt-shared-inputs').style.display = tab === 3 ? 'none' : '';
   document.getElementById('rt-mode1-inputs').style.display = tab === 1 ? '' : 'none';
   document.getElementById('rt-mode2-inputs').style.display = tab === 2 ? '' : 'none';
   document.getElementById('rt-mode3-inputs').style.display = tab === 3 ? '' : 'none';
@@ -3702,17 +3709,33 @@ function calcGrowthSim() {
   buildYearTable('rt-tbody-sim', rows);
 }
 
+let _spCurrency = 'USD';
+function setSpCurrency(cur) {
+  _spCurrency = cur;
+  const isUSD = cur === 'USD';
+  document.getElementById('rt-sp-cur-usd').style.cssText = `flex:1;padding:8px;border-radius:7px;border:1px solid ${isUSD?'#4a9eff':'#2e3342'};background:${isUSD?'#1a3a5c':'none'};color:${isUSD?'#4a9eff':'#5a6780'};font-size:13px;font-weight:600;cursor:pointer`;
+  document.getElementById('rt-sp-cur-twd').style.cssText = `flex:1;padding:8px;border-radius:7px;border:1px solid ${!isUSD?'#fbbf24':'#2e3342'};background:${!isUSD?'#2a2010':'none'};color:${!isUSD?'#fbbf24':'#5a6780'};font-size:13px;font-weight:600;cursor:pointer`;
+  const unit = isUSD ? 'USD' : 'TWD';
+  document.getElementById('rt-sp-buy-label').textContent    = `買進價格（${unit}）`;
+  document.getElementById('rt-sp-target-label').textContent = `目標賣出價格（${unit}）`;
+  document.getElementById('rt-sp-buy').placeholder    = isUSD ? '例：150.00' : '例：150';
+  document.getElementById('rt-sp-target').placeholder = isUSD ? '例：200.00' : '例：200';
+}
+
 function calcStockPrice() {
   const buy    = parseFloat(document.getElementById('rt-sp-buy').value);
   const shares = parseFloat(document.getElementById('rt-sp-shares').value);
   const target = parseFloat(document.getElementById('rt-sp-target').value);
   if (!buy || !shares || !target) return;
 
+  const isUSD  = _spCurrency === 'USD';
+  const prefix = isUSD ? 'US$' : 'NT$';
+  const dec    = isUSD ? 2 : 0;
   const cost   = buy * shares;
   const total  = target * shares;
   const profit = total - cost;
   const pct    = (profit / cost) * 100;
-  const fmtNum = n => n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const fmtNum = n => prefix + n.toLocaleString(undefined, { minimumFractionDigits: dec, maximumFractionDigits: dec });
   const pnlCls = profit >= 0 ? '#3dd68c' : '#f56565';
 
   document.getElementById('rt-sp-cost').textContent   = fmtNum(cost);
