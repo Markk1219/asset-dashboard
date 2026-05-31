@@ -16,12 +16,12 @@
   .sidebar.collapsed .sidebar-logo { display: none; }
   .sidebar-toggle { background: none; border: none; color: #4a5568; cursor: pointer; font-size: 13px; padding: 4px; flex-shrink: 0; transition: color .15s; }
   .sidebar-toggle:hover { color: #c8d0e0; }
-  .sidebar-expand { display: none; padding: 12px 0 12px; text-align: center; border-bottom: 1px solid #252830; position: relative; }
-  .sidebar.collapsed .sidebar-expand { display: block; }
-  .sidebar-expand button { background: #252a38; border: 1px solid #2e3342; border-radius: 8px; color: #7a8499; cursor: pointer; font-size: 14px; padding: 6px 8px; transition: color .15s, background .15s; width: 34px; height: 34px; display: inline-flex; align-items: center; justify-content: center; }
-  .sidebar-expand button:hover { color: #c8d0e0; background: #2e3448; }
-  .sidebar-expand .expand-tooltip { position: absolute; left: 52px; top: 50%; transform: translateY(-50%); background: #2e3448; color: #c8d0e0; font-size: 12px; padding: 5px 10px; border-radius: 6px; white-space: nowrap; pointer-events: none; opacity: 0; transition: opacity .15s; border: 1px solid #3a4260; }
-  .sidebar-expand button:hover + .expand-tooltip,
+  .sidebar-expand { display: none; padding: 16px 0; text-align: center; border-bottom: 1px solid #252830; position: relative; cursor: pointer; }
+  .sidebar.collapsed .sidebar-expand { display: flex; align-items: center; justify-content: center; }
+  .sidebar-expand-icon { font-size: 22px; width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; border-radius: 10px; background: #1e2230; transition: background .15s; }
+  .sidebar-expand:hover .sidebar-expand-icon { background: #252b3a; }
+  .sidebar-expand .expand-tooltip { position: absolute; left: 56px; top: 50%; transform: translateY(-50%); background: #2e3448; color: #c8d0e0; font-size: 12px; padding: 6px 12px; border-radius: 8px; white-space: nowrap; pointer-events: none; opacity: 0; transition: opacity .2s; border: 1px solid #3a4260; box-shadow: 0 4px 12px rgba(0,0,0,0.3); }
+  .sidebar-expand .expand-tooltip::before { content:''; position:absolute; left:-5px; top:50%; transform:translateY(-50%); border:5px solid transparent; border-right-color:#3a4260; border-left:none; }
   .sidebar-expand:hover .expand-tooltip { opacity: 1; }
   .sidebar-nav { padding: 16px 0; flex: 1; }
   .nav-item { padding: 10px 14px; padding-left: 17px; cursor: pointer; color: #7a8499; font-size: 14px; display: flex; align-items: center; gap: 10px; transition: all 0.2s; white-space: nowrap; overflow: hidden; border-left: 3px solid transparent; }
@@ -30,6 +30,7 @@
   .nav-icon { width: 20px; text-align: center; flex-shrink: 0; }
   .nav-item .nav-label { transition: opacity .2s, max-width .25s; max-width: 160px; overflow: hidden; }
   .sidebar.collapsed .nav-label { opacity: 0; max-width: 0; }
+  .sidebar.collapsed .nav-item { justify-content: center; padding-left: 0; padding-right: 0; }
   .sidebar-footer { padding: 16px 14px; border-top: 1px solid #252830; font-size: 11px; color: #4a5568; line-height: 1.6; overflow: hidden; }
   .sidebar-footer-text { transition: opacity .2s; white-space: nowrap; }
   .sidebar.collapsed .sidebar-footer-text { opacity: 0; pointer-events: none; }
@@ -47,6 +48,7 @@
   .card { background: #1a1d26; border-radius: 10px; padding: 18px 20px; border: 1px solid #252830; }
   .card-label { font-size: 13px; color: #7a8499; margin-bottom: 10px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.04em; }
   .card-value { font-size: 28px; font-weight: 700; color: #e2e8f0; }
+  body.privacy-mode .private { filter: blur(10px); user-select: none; pointer-events: none; }
   .card-value.positive { color: #3dd68c; }
   .card-value.negative { color: #f56565; }
   .card-sub { font-size: 14px; color: #7a8499; margin-top: 8px; }
@@ -222,16 +224,18 @@
 <div class="sidebar-wrap">
   <div class="sidebar" id="sidebar">
     <div class="sidebar-logo">
-      <span>💼 <span style="color:#4a9eff">資產</span>追蹤</span>
+      <span>💰 <span style="color:#4a9eff">個人</span>理財</span>
       <button class="sidebar-toggle" id="sidebar-toggle-btn" onclick="toggleSidebar()" title="收合側欄">◀</button>
     </div>
-    <div class="sidebar-expand">
-      <button onclick="toggleSidebar()">▶</button>
+    <div class="sidebar-expand" onclick="toggleSidebar()">
+      <div class="sidebar-expand-icon">💰</div>
       <span class="expand-tooltip">展開側欄</span>
     </div>
     <nav class="sidebar-nav">
       <div class="nav-item active" onclick="showPage('overview')"><span class="nav-icon">📊</span><span class="nav-label">資產總覽</span></div>
       <div class="nav-item" onclick="showPage('debt')"><span class="nav-icon">💳</span><span class="nav-label">負債管理</span></div>
+      <div class="nav-item" onclick="showPage('mortgage')"><span class="nav-icon">🏠</span><span class="nav-label">房貸試算</span></div>
+      <div class="nav-item" onclick="showPage('returns')"><span class="nav-icon">📈</span><span class="nav-label">報酬率試算</span></div>
     </nav>
     <div class="sidebar-footer">
       <div class="sidebar-footer-text">
@@ -259,6 +263,7 @@
     <div class="header-actions">
       <button class="btn" id="refresh-btn" onclick="manualRefresh()" title="重新整理股價">↻ 更新</button>
       <button class="btn" onclick="openLedgerModal()">📒 帳本</button>
+      <button class="btn" id="privacy-btn" onclick="togglePrivacy()" title="隱藏/顯示資產">👁</button>
       <button class="btn active" id="currency-btn" onclick="toggleCurrency()">TWD</button>
     </div>
   </div>
@@ -266,26 +271,26 @@
   <div class="cards">
     <div class="card">
       <div class="card-label">總資產現值</div>
-      <div class="card-value" id="total-assets">—</div>
-      <div class="card-sub" id="total-cost">投入成本：—</div>
+      <div class="card-value private" id="total-assets">—</div>
+      <div class="card-sub private" id="total-cost">投入成本：—</div>
     </div>
     <div class="card">
       <div class="card-label">未實現損益</div>
-      <div class="card-value" id="unrealized-pnl">—</div>
-      <div class="card-sub" id="unrealized-pct">報酬率：—</div>
+      <div class="card-value private" id="unrealized-pnl">—</div>
+      <div class="card-sub private" id="unrealized-pct">報酬率：—</div>
     </div>
     <div class="card">
       <div class="card-label">淨資產</div>
-      <div class="card-value" id="net-assets">—</div>
+      <div class="card-value private" id="net-assets">—</div>
       <div style="margin-top:10px;border-top:1px solid #1e2230;padding-top:8px">
-        <div class="platform-item"><span class="name">台幣現金</span><span class="val" id="cash-twd-val" style="cursor:pointer;border-bottom:1px dashed #3a4458" onclick="editBalance('cashTWD')" title="點擊編輯">—</span></div>
-        <div class="platform-item"><span class="name">美元現金</span><span class="val" id="cash-usd-val" style="cursor:pointer;border-bottom:1px dashed #3a4458" onclick="editBalance('cashUSD')" title="點擊編輯">—</span></div>
-        <div class="platform-item"><span class="name">信貸</span><span class="val" id="loan-val" style="cursor:pointer;border-bottom:1px dashed #3a4458" onclick="editBalance('loan')" title="點擊編輯">—</span></div>
+        <div class="platform-item"><span class="name">台幣現金</span><span class="val private" id="cash-twd-val" style="cursor:pointer;border-bottom:1px dashed #3a4458" onclick="editBalance('cashTWD')" title="點擊編輯">—</span></div>
+        <div class="platform-item"><span class="name">美元現金</span><span class="val private" id="cash-usd-val" style="cursor:pointer;border-bottom:1px dashed #3a4458" onclick="editBalance('cashUSD')" title="點擊編輯">—</span></div>
+        <div class="platform-item"><span class="name">信貸</span><span class="val private" id="loan-val" style="cursor:pointer;border-bottom:1px dashed #3a4458" onclick="editBalance('loan')" title="點擊編輯">—</span></div>
       </div>
     </div>
     <div class="card">
       <div class="card-label">各平台現值</div>
-      <div class="platform-list" id="platform-list">—</div>
+      <div class="platform-list private" id="platform-list">—</div>
     </div>
   </div>
 
@@ -777,6 +782,203 @@
     <div id="debt-empty" style="text-align:center;padding:40px;color:#4a5568;font-size:14px;">尚無貸款紀錄，點擊右上角新增</div>
   </div>
 </div><!-- /page-debt -->
+
+<!-- ── 房貸試算 ── -->
+<div id="page-mortgage" style="display:none">
+  <div class="page-header">
+    <div><h1>🏠 房貸試算</h1><p>計算每月還款金額與還款明細</p></div>
+  </div>
+  <div style="display:grid;grid-template-columns:380px 1fr;gap:20px;align-items:start">
+    <!-- 左：輸入區 -->
+    <div class="card" style="padding:24px">
+      <div class="form-group">
+        <label>貸款金額（萬元）</label>
+        <input type="number" id="mg-amount" value="1000" min="1" style="width:100%;padding:9px 12px;border:1px solid #2e3342;border-radius:7px;font-size:14px;background:#13161d;color:#e2e8f0;outline:none">
+      </div>
+      <div class="form-group">
+        <label>貸款年限（年）</label>
+        <input type="number" id="mg-years" value="30" min="1" max="40" style="width:100%;padding:9px 12px;border:1px solid #2e3342;border-radius:7px;font-size:14px;background:#13161d;color:#e2e8f0;outline:none">
+      </div>
+      <div class="form-group">
+        <label>年利率（%）</label>
+        <input type="number" id="mg-rate" value="2.6" min="0" step="0.01" style="width:100%;padding:9px 12px;border:1px solid #2e3342;border-radius:7px;font-size:14px;background:#13161d;color:#e2e8f0;outline:none">
+      </div>
+      <div class="form-group">
+        <label>寬限期（年，選填）</label>
+        <input type="number" id="mg-grace" value="0" min="0" style="width:100%;padding:9px 12px;border:1px solid #2e3342;border-radius:7px;font-size:14px;background:#13161d;color:#e2e8f0;outline:none">
+      </div>
+      <div class="form-group">
+        <label>還款方式</label>
+        <select id="mg-method" style="width:100%;padding:9px 12px;border:1px solid #2e3342;border-radius:7px;font-size:14px;background:#13161d;color:#e2e8f0;outline:none">
+          <option value="annuity">本息平均攤還</option>
+          <option value="principal">本金平均攤還</option>
+        </select>
+      </div>
+      <button onclick="calcMortgage()" style="width:100%;padding:11px;background:#1a3a5c;color:#4a9eff;border:1px solid #4a9eff;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;margin-top:4px">開始試算</button>
+    </div>
+    <!-- 右：結果區 -->
+    <div>
+      <div id="mg-summary" style="display:none;margin-bottom:16px">
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:16px">
+          <div class="card" style="text-align:center">
+            <div class="card-label">月繳金額</div>
+            <div class="card-value" id="mg-monthly" style="font-size:22px">—</div>
+            <div id="mg-monthly-sub" style="font-size:11px;color:#5a6780;margin-top:4px"></div>
+          </div>
+          <div class="card" style="text-align:center">
+            <div class="card-label">總還款金額</div>
+            <div class="card-value" id="mg-total" style="font-size:22px">—</div>
+          </div>
+          <div class="card" style="text-align:center">
+            <div class="card-label">總利息</div>
+            <div class="card-value" id="mg-interest" style="font-size:22px;color:#f59e0b">—</div>
+          </div>
+        </div>
+      </div>
+      <div class="card" style="padding:0;overflow:hidden">
+        <div style="padding:14px 20px;border-bottom:1px solid #252830;font-size:13px;font-weight:600;color:#c8d0e0">還款明細</div>
+        <div style="overflow-x:auto;max-height:520px;overflow-y:auto">
+          <table id="mg-table" style="width:100%;border-collapse:collapse;font-size:13px">
+            <thead style="position:sticky;top:0;background:#1a1d26">
+              <tr style="color:#7a8499;font-size:11px;text-transform:uppercase;letter-spacing:0.04em">
+                <th style="padding:10px 16px;text-align:left;font-weight:600">期數</th>
+                <th style="padding:10px 16px;text-align:right;font-weight:600">月繳</th>
+                <th style="padding:10px 16px;text-align:right;font-weight:600">本金</th>
+                <th style="padding:10px 16px;text-align:right;font-weight:600">利息</th>
+                <th style="padding:10px 16px;text-align:right;font-weight:600">剩餘本金</th>
+              </tr>
+            </thead>
+            <tbody id="mg-tbody">
+              <tr><td colspan="5" style="text-align:center;padding:40px;color:#4a5568">請輸入參數後點擊試算</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div><!-- /page-mortgage -->
+
+<!-- ── 報酬率試算 ── -->
+<div id="page-returns" style="display:none">
+  <div class="page-header">
+    <div><h1>📈 報酬率試算</h1><p>計算達成目標所需報酬率或資產成長模擬</p></div>
+  </div>
+  <!-- Tab 切換 -->
+  <div style="display:flex;gap:0;margin-bottom:20px;border-bottom:1px solid #252830">
+    <button id="rt-tab-1" onclick="switchRtTab(1)" style="padding:10px 20px;background:none;border:none;border-bottom:2px solid #4a9eff;color:#4a9eff;font-size:14px;font-weight:600;cursor:pointer">需要多少報酬率？</button>
+    <button id="rt-tab-2" onclick="switchRtTab(2)" style="padding:10px 20px;background:none;border:none;border-bottom:2px solid transparent;color:#5a6780;font-size:14px;font-weight:600;cursor:pointer">資產成長模擬</button>
+  </div>
+  <div style="display:grid;grid-template-columns:360px 1fr;gap:20px;align-items:start">
+    <!-- 左：共用輸入 -->
+    <div class="card" style="padding:24px">
+      <div class="form-group">
+        <label>現在資產（萬元）</label>
+        <input type="number" id="rt-current" value="140" min="0" style="width:100%;padding:9px 12px;border:1px solid #2e3342;border-radius:7px;font-size:14px;background:#13161d;color:#e2e8f0;outline:none">
+      </div>
+      <div class="form-group">
+        <label>每月定期定額（萬元，選填）</label>
+        <input type="number" id="rt-monthly" value="0" min="0" step="0.1" style="width:100%;padding:9px 12px;border:1px solid #2e3342;border-radius:7px;font-size:14px;background:#13161d;color:#e2e8f0;outline:none">
+      </div>
+      <div style="border-top:1px solid #252830;margin:14px 0"></div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+        <span style="font-size:12px;color:#7a8499;font-weight:600;text-transform:uppercase;letter-spacing:0.04em">單次投入（選填）</span>
+        <button onclick="addLumpSum()" style="background:none;border:1px dashed #2e3342;border-radius:5px;color:#4a5568;font-size:11px;padding:2px 8px;cursor:pointer">+ 新增</button>
+      </div>
+      <div id="rt-lumpsum-list" style="display:flex;flex-direction:column;gap:6px;margin-bottom:4px"></div>
+      <div style="border-top:1px solid #252830;margin:14px 0"></div>
+      <!-- 模式一專屬 -->
+      <div id="rt-mode1-inputs">
+        <div class="form-group">
+          <label>目標金額（萬元）</label>
+          <input type="number" id="rt-target" value="500" min="1" style="width:100%;padding:9px 12px;border:1px solid #2e3342;border-radius:7px;font-size:14px;background:#13161d;color:#e2e8f0;outline:none">
+        </div>
+        <div class="form-group">
+          <label>投資年限（年）</label>
+          <input type="number" id="rt-years" value="10" min="1" style="width:100%;padding:9px 12px;border:1px solid #2e3342;border-radius:7px;font-size:14px;background:#13161d;color:#e2e8f0;outline:none">
+        </div>
+        <button onclick="calcReturnRate()" style="width:100%;padding:11px;background:#1a3a5c;color:#4a9eff;border:1px solid #4a9eff;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer">開始試算</button>
+      </div>
+      <!-- 模式二專屬 -->
+      <div id="rt-mode2-inputs" style="display:none">
+        <div class="form-group">
+          <label>預期年化報酬率（%）</label>
+          <input type="number" id="rt-rate" value="10" min="0" step="0.1" style="width:100%;padding:9px 12px;border:1px solid #2e3342;border-radius:7px;font-size:14px;background:#13161d;color:#e2e8f0;outline:none">
+        </div>
+        <div class="form-group">
+          <label>模擬年數（年）</label>
+          <input type="number" id="rt-sim-years" value="20" min="1" max="50" style="width:100%;padding:9px 12px;border:1px solid #2e3342;border-radius:7px;font-size:14px;background:#13161d;color:#e2e8f0;outline:none">
+        </div>
+        <button onclick="calcGrowthSim()" style="width:100%;padding:11px;background:#1a3858;color:#a78bfa;border:1px solid #a78bfa;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer">開始模擬</button>
+      </div>
+    </div>
+    <!-- 右：結果區 -->
+    <div>
+      <!-- 模式一結果 -->
+      <div id="rt-result-rate" style="display:none">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px">
+          <div class="card" style="text-align:center">
+            <div class="card-label">所需年化報酬率</div>
+            <div class="card-value" id="rt-rate-result" style="font-size:28px;color:#4a9eff">—</div>
+          </div>
+          <div class="card" style="text-align:center">
+            <div class="card-label">到期資產</div>
+            <div class="card-value" id="rt-final-assets" style="font-size:28px">—</div>
+          </div>
+        </div>
+        <div class="card" style="padding:0;overflow:hidden">
+          <div style="padding:14px 20px;border-bottom:1px solid #252830;font-size:13px;font-weight:600;color:#c8d0e0">逐年資產預估</div>
+          <div style="overflow-x:auto;max-height:440px;overflow-y:auto">
+            <table style="width:100%;border-collapse:collapse;font-size:13px">
+              <thead style="position:sticky;top:0;background:#1a1d26">
+                <tr style="color:#7a8499;font-size:11px;text-transform:uppercase">
+                  <th style="padding:10px 16px;text-align:left;font-weight:600">年份</th>
+                  <th style="padding:10px 16px;text-align:right;font-weight:600">年初資產</th>
+                  <th style="padding:10px 16px;text-align:right;font-weight:600">投資收益</th>
+                  <th style="padding:10px 16px;text-align:right;font-weight:600">定期定額</th>
+                  <th style="padding:10px 16px;text-align:right;font-weight:600">單次投入</th>
+                  <th style="padding:10px 16px;text-align:right;font-weight:600">年末資產</th>
+                </tr>
+              </thead>
+              <tbody id="rt-tbody-rate"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+      <!-- 模式二結果 -->
+      <div id="rt-result-sim" style="display:none">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px">
+          <div class="card" style="text-align:center">
+            <div class="card-label">模擬期末資產</div>
+            <div class="card-value" id="rt-sim-final" style="font-size:28px;color:#a78bfa">—</div>
+          </div>
+          <div class="card" style="text-align:center">
+            <div class="card-label">總投入本金</div>
+            <div class="card-value" id="rt-sim-cost" style="font-size:28px">—</div>
+          </div>
+        </div>
+        <div class="card" style="padding:0;overflow:hidden">
+          <div style="padding:14px 20px;border-bottom:1px solid #252830;font-size:13px;font-weight:600;color:#c8d0e0">逐年資產預估</div>
+          <div style="overflow-x:auto;max-height:440px;overflow-y:auto">
+            <table style="width:100%;border-collapse:collapse;font-size:13px">
+              <thead style="position:sticky;top:0;background:#1a1d26">
+                <tr style="color:#7a8499;font-size:11px;text-transform:uppercase">
+                  <th style="padding:10px 16px;text-align:left;font-weight:600">年份</th>
+                  <th style="padding:10px 16px;text-align:right;font-weight:600">年初資產</th>
+                  <th style="padding:10px 16px;text-align:right;font-weight:600">投資收益</th>
+                  <th style="padding:10px 16px;text-align:right;font-weight:600">定期定額</th>
+                  <th style="padding:10px 16px;text-align:right;font-weight:600">單次投入</th>
+                  <th style="padding:10px 16px;text-align:right;font-weight:600">年末資產</th>
+                </tr>
+              </thead>
+              <tbody id="rt-tbody-sim"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+      <div id="rt-placeholder" style="text-align:center;padding:80px 20px;color:#4a5568;font-size:14px">請輸入參數後點擊試算</div>
+    </div>
+  </div>
+</div><!-- /page-returns -->
 
 <!-- 新增/編輯貸款 Modal -->
 <div id="debt-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:1000;align-items:center;justify-content:center;">
@@ -1848,6 +2050,18 @@ function toggleHoldingCurrency(type) {
   renderHoldings(null);
 }
 
+let _privacyMode = localStorage.getItem('privacy_mode') === '1';
+function applyPrivacy() {
+  document.body.classList.toggle('privacy-mode', _privacyMode);
+  document.getElementById('privacy-btn').textContent = _privacyMode ? '🙈' : '👁';
+}
+function togglePrivacy() {
+  _privacyMode = !_privacyMode;
+  localStorage.setItem('privacy_mode', _privacyMode ? '1' : '0');
+  applyPrivacy();
+}
+applyPrivacy();
+
 function toggleSidebar() {
   const sb = document.getElementById('sidebar');
   const btn = document.getElementById('sidebar-toggle-btn');
@@ -1921,7 +2135,7 @@ function renderCards() {
 
   const pnlEl = document.getElementById('unrealized-pnl');
   pnlEl.textContent = (d.unrealizedPnl >= 0 ? '+' : '') + fmtVal(d.unrealizedPnl);
-  pnlEl.className = 'card-value ' + (d.unrealizedPnl >= 0 ? 'positive' : 'negative');
+  pnlEl.className = 'card-value private ' + (d.unrealizedPnl >= 0 ? 'positive' : 'negative');
   document.getElementById('unrealized-pct').textContent = '報酬率：' + (d.unrealizedPnl >= 0 ? '+' : '') + d.unrealizedPct + '%';
 
   document.getElementById('net-assets').textContent = fmtVal(d.netAssets);
@@ -3245,6 +3459,186 @@ document.addEventListener('change', e => {
   if (e.target.id === 's-code' || e.target.id === 's-shares' || e.target.id === 's-price') updateSellPreview();
   if (e.target.id === 's-code') updateSellHint();
 });
+
+// ── 房貸試算 ──────────────────────────────────────────────────────
+function calcMortgage() {
+  const principal = parseFloat(document.getElementById('mg-amount').value) * 10000;
+  const years     = parseInt(document.getElementById('mg-years').value);
+  const rate      = parseFloat(document.getElementById('mg-rate').value) / 100;
+  const gracePer  = parseInt(document.getElementById('mg-grace').value) || 0;
+  const method    = document.getElementById('mg-method').value;
+
+  if (!principal || !years || !rate) return;
+
+  const totalMonths = years * 12;
+  const graceMonths = gracePer * 12;
+  const monthlyRate = rate / 12;
+
+  const rows = [];
+  let remaining = principal;
+  let totalInterest = 0;
+  let totalPayment = 0;
+
+  // 本息平均攤還月付（寬限期後）
+  const n = totalMonths - graceMonths;
+  const annuityPayment = method === 'annuity' && n > 0
+    ? principal * monthlyRate * Math.pow(1 + monthlyRate, n) / (Math.pow(1 + monthlyRate, n) - 1)
+    : 0;
+  // 本金平均攤還月付本金（寬限期後）
+  const principalPayment = method === 'principal' && n > 0
+    ? principal / n
+    : 0;
+
+  for (let m = 1; m <= totalMonths; m++) {
+    const interest = remaining * monthlyRate;
+    let principalPaid, payment;
+    if (m <= graceMonths) {
+      principalPaid = 0;
+      payment = interest;
+    } else if (method === 'annuity') {
+      payment = annuityPayment;
+      principalPaid = payment - interest;
+    } else {
+      principalPaid = principalPayment;
+      payment = principalPaid + interest;
+    }
+    remaining -= principalPaid;
+    if (remaining < 0.01) remaining = 0;
+    totalInterest += interest;
+    totalPayment += payment;
+    rows.push({ m, payment, principalPaid, interest, remaining });
+  }
+
+  const fmt = v => 'NT$' + Math.round(v).toLocaleString();
+
+  document.getElementById('mg-summary').style.display = '';
+  document.getElementById('mg-monthly').textContent = fmt(rows[graceMonths]?.payment ?? rows[0].payment);
+  document.getElementById('mg-monthly-sub').textContent = graceMonths > 0
+    ? `寬限期月繳 ${fmt(rows[0].payment)}（僅付息）` : '';
+  document.getElementById('mg-total').textContent = fmt(totalPayment);
+  document.getElementById('mg-interest').textContent = fmt(totalInterest);
+
+  document.getElementById('mg-tbody').innerHTML = rows.map(r => `
+    <tr style="border-bottom:1px solid #1e2230">
+      <td style="padding:8px 16px;color:#7a8499">${r.m}</td>
+      <td style="padding:8px 16px;text-align:right">${fmt(r.payment)}</td>
+      <td style="padding:8px 16px;text-align:right;color:#3dd68c">${fmt(r.principalPaid)}</td>
+      <td style="padding:8px 16px;text-align:right;color:#f59e0b">${fmt(r.interest)}</td>
+      <td style="padding:8px 16px;text-align:right">${fmt(r.remaining)}</td>
+    </tr>`).join('');
+}
+
+// ── 報酬率試算 ──────────────────────────────────────────────────────
+function fmtWan(v) {
+  return (v / 10000).toFixed(1) + ' 萬';
+}
+
+function buildYearTable(tbodyId, rows) {
+  document.getElementById(tbodyId).innerHTML = rows.map(r => `
+    <tr style="border-bottom:1px solid #1e2230${r.lump > 0 ? ';background:rgba(167,139,250,0.04)' : ''}">
+      <td style="padding:8px 16px;color:#7a8499">第 ${r.year} 年</td>
+      <td style="padding:8px 16px;text-align:right">${fmtWan(r.start)}</td>
+      <td style="padding:8px 16px;text-align:right;color:#3dd68c">+${fmtWan(r.gain)}</td>
+      <td style="padding:8px 16px;text-align:right;color:#4a9eff">${r.dca > 0 ? '+' + fmtWan(r.dca) : '—'}</td>
+      <td style="padding:8px 16px;text-align:right;color:#a78bfa">${r.lump > 0 ? '+' + fmtWan(r.lump) : '—'}</td>
+      <td style="padding:8px 16px;text-align:right;font-weight:600">${fmtWan(r.end)}</td>
+    </tr>`).join('');
+}
+
+function getLumpSums() {
+  const map = {};
+  document.querySelectorAll('.rt-lump-row').forEach(row => {
+    const y = parseInt(row.querySelector('.lump-year').value);
+    const v = parseFloat(row.querySelector('.lump-amount').value) || 0;
+    if (y > 0 && v > 0) map[y] = (map[y] || 0) + v;
+  });
+  return map;
+}
+
+function addLumpSum() {
+  const container = document.getElementById('rt-lumpsum-list');
+  const div = document.createElement('div');
+  div.className = 'rt-lump-row';
+  div.style.cssText = 'display:flex;gap:6px;align-items:center';
+  div.innerHTML = `
+    <span style="font-size:12px;color:#5a6780;white-space:nowrap">第</span>
+    <input type="number" class="lump-year" value="3" min="1" style="width:54px;padding:6px 8px;border:1px solid #2e3342;border-radius:6px;font-size:13px;background:#13161d;color:#e2e8f0;outline:none">
+    <span style="font-size:12px;color:#5a6780;white-space:nowrap">年 +</span>
+    <input type="number" class="lump-amount" value="50" min="0" step="1" style="flex:1;padding:6px 8px;border:1px solid #2e3342;border-radius:6px;font-size:13px;background:#13161d;color:#e2e8f0;outline:none">
+    <span style="font-size:12px;color:#5a6780;white-space:nowrap">萬</span>
+    <button onclick="this.parentElement.remove()" style="background:none;border:none;color:#4a5568;cursor:pointer;font-size:14px;padding:2px 4px">✕</button>`;
+  container.appendChild(div);
+}
+
+function simulateGrowth(current, monthly, rateAnnual, maxYears, lumpSums) {
+  const rows = [];
+  let assets = current * 10000;
+  const monthlyDCA = monthly * 10000;
+  lumpSums = lumpSums || {};
+  for (let y = 1; y <= maxYears; y++) {
+    const start = assets;
+    const dca = monthlyDCA * 12;
+    const lump = (lumpSums[y] || 0) * 10000;
+    assets = assets * (1 + rateAnnual) + dca + lump;
+    rows.push({ year: y, start, gain: assets - start - dca - lump, dca, lump, end: assets });
+  }
+  return rows;
+}
+
+function calcReturnRate() {
+  const current = parseFloat(document.getElementById('rt-current').value) || 0;
+  const target  = parseFloat(document.getElementById('rt-target').value);
+  const monthly = parseFloat(document.getElementById('rt-monthly').value) || 0;
+  const years   = parseInt(document.getElementById('rt-years').value);
+  const lumps   = getLumpSums();
+  if (!target || !years) return;
+
+  let lo = -0.5, hi = 10, r = 0;
+  for (let i = 0; i < 100; i++) {
+    r = (lo + hi) / 2;
+    const rows = simulateGrowth(current, monthly, r, years, lumps);
+    if (rows[rows.length - 1].end / 10000 > target) hi = r; else lo = r;
+  }
+
+  const rows = simulateGrowth(current, monthly, r, years, lumps);
+  document.getElementById('rt-result-rate').style.display = '';
+  document.getElementById('rt-result-sim').style.display = 'none';
+  document.getElementById('rt-placeholder').style.display = 'none';
+  document.getElementById('rt-rate-result').textContent = (r * 100).toFixed(2) + '%';
+  document.getElementById('rt-final-assets').textContent = fmtWan(rows[rows.length - 1].end);
+  buildYearTable('rt-tbody-rate', rows);
+}
+
+function switchRtTab(tab) {
+  document.getElementById('rt-tab-1').style.cssText = `padding:10px 20px;background:none;border:none;border-bottom:2px solid ${tab===1?'#4a9eff':'transparent'};color:${tab===1?'#4a9eff':'#5a6780'};font-size:14px;font-weight:600;cursor:pointer`;
+  document.getElementById('rt-tab-2').style.cssText = `padding:10px 20px;background:none;border:none;border-bottom:2px solid ${tab===2?'#a78bfa':'transparent'};color:${tab===2?'#a78bfa':'#5a6780'};font-size:14px;font-weight:600;cursor:pointer`;
+  document.getElementById('rt-mode1-inputs').style.display = tab === 1 ? '' : 'none';
+  document.getElementById('rt-mode2-inputs').style.display = tab === 2 ? '' : 'none';
+  document.getElementById('rt-result-rate').style.display = 'none';
+  document.getElementById('rt-result-sim').style.display = 'none';
+  document.getElementById('rt-placeholder').style.display = '';
+}
+
+function calcGrowthSim() {
+  const current  = parseFloat(document.getElementById('rt-current').value) || 0;
+  const monthly  = parseFloat(document.getElementById('rt-monthly').value) || 0;
+  const rate     = parseFloat(document.getElementById('rt-rate').value) / 100;
+  const simYears = parseInt(document.getElementById('rt-sim-years').value) || 20;
+  const lumps    = getLumpSums();
+  if (!rate) return;
+
+  const rows = simulateGrowth(current, monthly, rate, simYears, lumps);
+  const finalVal = rows[rows.length - 1].end;
+  const totalCost = current * 10000 + monthly * 10000 * 12 * simYears
+    + Object.values(lumps).reduce((s, v) => s + v, 0) * 10000;
+
+  document.getElementById('rt-result-sim').style.display = '';
+  document.getElementById('rt-result-rate').style.display = 'none';
+  document.getElementById('rt-placeholder').style.display = 'none';
+  document.getElementById('rt-sim-final').textContent = fmtWan(finalVal);
+  document.getElementById('rt-sim-cost').textContent = fmtWan(totalCost);
+  buildYearTable('rt-tbody-sim', rows);
+}
 document.addEventListener('input', e => {
   if (e.target.id === 's-shares' || e.target.id === 's-price') updateSellPreview();
 });
@@ -3410,10 +3804,11 @@ function deleteLedgerEntry(idx) {
 
 // ── 分頁切換 ──────────────────────────────────────────────────────
 function showPage(page) {
-  document.getElementById('page-overview').style.display = page === 'overview' ? '' : 'none';
-  document.getElementById('page-debt').style.display = page === 'debt' ? '' : 'none';
+  ['overview','debt','mortgage','returns'].forEach(p => {
+    document.getElementById('page-' + p).style.display = page === p ? '' : 'none';
+  });
   document.querySelectorAll('.nav-item').forEach((el, i) => {
-    el.classList.toggle('active', (i === 0 && page === 'overview') || (i === 1 && page === 'debt'));
+    el.classList.toggle('active', ['overview','debt','mortgage','returns'][i] === page);
   });
   if (page === 'debt') renderDebtPage();
 }
