@@ -2259,6 +2259,8 @@ function renderHoldings(marketTimes) {
     const sumMktVal = totalValTWD * mktRate;
     const sumPnlRaw = nonTotal.reduce((s, h) => s + (h.pnl || 0), 0);
     const sumPnl = sumPnlRaw * pnlRate;
+    const sumCostRaw = nonTotal.reduce((s, h) => s + (h.avgPrice || 0) * (h.shares || 0), 0);
+    const sumPnlPct = sumCostRaw > 0 ? (sumPnlRaw / sumCostRaw * 100) : null;
 
     const barColor = isTW ? '#fbbf24' : typeKey === 'us' ? '#4a9eff' : '#a78bfa';
 
@@ -2270,11 +2272,12 @@ function renderHoldings(marketTimes) {
         const mktValStr = sumMktVal > 0 ? (prefix + Math.round(sumMktVal).toLocaleString()) : '—';
         const pnlStr = nonTotal.length > 0 ? ((sumPnl >= 0 ? '+' : '') + Math.round(sumPnl).toLocaleString()) : '—';
         const pnlCls = sumPnl >= 0 ? 'pos' : 'neg';
+        const pnlPctStr = sumPnlPct != null ? ((sumPnlPct >= 0 ? '+' : '') + sumPnlPct.toFixed(2) + '%') : '—';
         return `<tr>
           <td>總和</td><td>—</td><td>—</td><td>—</td>
           <td style="font-weight:700">${mask(mktValStr)}</td>
           <td class="${pnlCls}" style="font-weight:700">${mask(pnlStr, pnlCls)}</td>
-          <td>—</td>
+          <td class="${pnlCls}" style="font-weight:700">${mask(pnlPctStr, pnlCls)}</td>
         </tr>`;
       }
       const nameHtml = h.name ? `<div style="font-size:11px;color:#4a5568;font-weight:400">${h.name}</div>` : '';
