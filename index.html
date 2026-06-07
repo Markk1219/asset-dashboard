@@ -539,9 +539,15 @@
           <option value="-2">-2x（兩倍反向）</option>
         </select>
       </div>
+      <div style="margin-bottom:12px">
+        <label style="display:flex;align-items:center;gap:8px;font-size:13px;color:#8a9bb5;cursor:pointer;user-select:none">
+          <input type="checkbox" id="f-no-cash" style="width:14px;height:14px;accent-color:#4a9eff" onchange="document.getElementById('f-submit-btn').textContent=this.checked?'新增（不動現金）':'買入（扣現金）'">
+          補建記錄（不調整現金）
+        </label>
+      </div>
       <div class="modal-actions">
         <button class="btn-cancel" onclick="closeModal()">取消</button>
-        <button class="btn-add" onclick="addHolding()">買入（扣現金）</button>
+        <button class="btn-add" onclick="addHolding()" id="f-submit-btn">買入（扣現金）</button>
       </div>
     </div>
   </div>
@@ -3042,6 +3048,8 @@ function openModal(type) {
 
 function closeModal() {
   document.getElementById('modal').classList.remove('open');
+  document.getElementById('f-no-cash').checked = false;
+  document.getElementById('f-submit-btn').textContent = '買入（扣現金）';
 }
 
 function editBalance(field) {
@@ -3443,17 +3451,20 @@ function addHolding() {
     else target.push(newEntry);
   }
 
-  // 買入扣現金並記帳
-  const cost = shares * avgPrice;
-  if (type === 'tw') {
-    RAW.summary.cashTWD = Math.max(0, RAW.summary.cashTWD - Math.round(cost));
-  } else {
-    RAW.summary.cashUSD = Math.max(0, parseFloat((RAW.summary.cashUSD - cost).toFixed(2)));
+  // 買入扣現金並記帳（補建記錄時跳過）
+  const noCash = document.getElementById('f-no-cash').checked;
+  if (!noCash) {
+    const cost = shares * avgPrice;
+    if (type === 'tw') {
+      RAW.summary.cashTWD = Math.max(0, RAW.summary.cashTWD - Math.round(cost));
+    } else {
+      RAW.summary.cashUSD = Math.max(0, parseFloat((RAW.summary.cashUSD - cost).toFixed(2)));
+    }
+    const today = new Date();
+    const dateStr = `${today.getFullYear()}/${today.getMonth()+1}/${today.getDate()}`;
+    transactions.push({ date: dateStr, type: 'buy', market: type, code, shares, price: avgPrice });
+    saveLedger();
   }
-  const today = new Date();
-  const dateStr = `${today.getFullYear()}/${today.getMonth()+1}/${today.getDate()}`;
-  transactions.push({ date: dateStr, type: 'buy', market: type, code, shares, price: avgPrice });
-  saveLedger();
 
   closeModal();
   renderHoldings({ tw: null, us: null, crypto: null });
