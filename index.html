@@ -2611,7 +2611,7 @@ function calcDrawdown() {
   const history = getMergedHistory();
   if (!history.length) return null;
   const peakVal = Math.max(...history.map(r => r[4]));
-  const current = RAW.summary.totalAssets - totalCashTWD();
+  const current = RAW.summary.totalAssets;
   if (!peakVal || !current) return null;
   return (current - peakVal) / peakVal * 100;
 }
@@ -2689,7 +2689,7 @@ function autoRecordToday() {
   const rows = loadHistory();
   const today = todayStr();
   const idx = rows.findIndex(r => r[0] === today);
-  const entry = [today, Math.round(d.twStock), Math.round(d.usStock), Math.round(d.crypto), Math.round(d.totalAssets - totalCashTWD())];
+  const entry = [today, Math.round(d.twStock), Math.round(d.usStock), Math.round(d.crypto), Math.round(d.totalAssets)];
   if (idx >= 0) {
     rows[idx] = entry; // 同天更新（取最後一次股價）
   } else {
