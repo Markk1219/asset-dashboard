@@ -2689,7 +2689,7 @@ function autoRecordToday() {
   const rows = loadHistory();
   const today = todayStr();
   const idx = rows.findIndex(r => r[0] === today);
-  const entry = [today, Math.round(d.twStock), Math.round(d.usStock), Math.round(d.crypto), Math.round(d.totalAssets)];
+  const entry = [today, Math.round(d.twStock), Math.round(d.usStock), Math.round(d.crypto), Math.round(d.totalAssets), Math.round(totalCashTWD())];
   if (idx >= 0) {
     rows[idx] = entry; // 同天更新（取最後一次股價）
   } else {
@@ -2749,6 +2749,7 @@ function buildChart(range, asset) {
       { label: '台股',   data: data.map(r => r[1]/divisor), borderColor: '#fbbf24', fill: false, tension: 0.4, pointRadius: 0, pointHoverRadius: 4, borderWidth: 1.5, borderDash: [4,3] },
       { label: '美股',   data: data.map(r => r[2]/divisor), borderColor: '#3dd68c', fill: false, tension: 0.4, pointRadius: 0, pointHoverRadius: 4, borderWidth: 1.5, borderDash: [4,3] },
       { label: '加密貨幣', data: data.map(r => r[3]/divisor), borderColor: '#a78bfa', fill: false, tension: 0.4, pointRadius: 0, pointHoverRadius: 4, borderWidth: 1.5, borderDash: [4,3] },
+      { label: '現金',   data: data.map(r => r[5] != null ? r[5]/divisor : null), borderColor: '#34d399', fill: false, tension: 0.4, pointRadius: 0, pointHoverRadius: 4, borderWidth: 1.5, borderDash: [4,3], spanGaps: false },
     ];
   } else {
     const s = allSeries[asset];
