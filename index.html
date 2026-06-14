@@ -44,7 +44,7 @@
   .btn:hover { background: #252b3a; color: #e2e8f0; }
   .btn.active { background: #1a3a5c; color: #4a9eff; border-color: #4a9eff; }
 
-  .cards { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 20px; }
+  .cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-bottom: 20px; }
   .card { background: #1a1d26; border-radius: 10px; padding: 18px 20px; border: 1px solid #252830; }
   .card-label { font-size: 13px; color: #7a8499; margin-bottom: 10px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.04em; }
   .card-value { font-size: 28px; font-weight: 700; color: #e2e8f0; }
@@ -183,7 +183,7 @@
     .main { padding: 16px 14px 72px; order: 1; }
 
     /* 頂部 KPI 卡片：2欄 */
-    .cards { grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 14px; }
+    .cards { grid-template-columns: 1fr; gap: 10px; margin-bottom: 14px; }
     .card-value { font-size: 20px; }
     .card-label { font-size: 11px; }
 
@@ -239,7 +239,7 @@
       <div class="nav-item active" onclick="showPage('overview')"><span class="nav-icon">📊</span><span class="nav-label">資產總覽</span></div>
       <div class="nav-item" onclick="showPage('debt')"><span class="nav-icon">💳</span><span class="nav-label">負債管理</span></div>
       <div class="nav-item" onclick="showPage('mortgage')"><span class="nav-icon">🏠</span><span class="nav-label">房貸試算</span></div>
-      <div class="nav-item" onclick="showPage('returns')"><span class="nav-icon">📈</span><span class="nav-label">報酬率試算</span></div>
+      <div class="nav-item" onclick="showPage('returns')"><span class="nav-icon">📈</span><span class="nav-label">投資試算</span></div>
     </nav>
     <div class="sidebar-footer">
       <div class="sidebar-footer-text">
@@ -280,6 +280,12 @@
       <div class="card-label">總資產現值</div>
       <div class="card-value private" id="total-assets">—</div>
       <div class="card-sub private" id="total-cost">投入成本：—</div>
+      <div style="margin-top:10px;border-top:1px solid #1e2230;padding-top:8px">
+        <div class="platform-item"><span class="name">台股</span><span class="val private" id="kpi-tw-val">—</span></div>
+        <div class="platform-item"><span class="name">美股</span><span class="val private" id="kpi-us-val">—</span></div>
+        <div class="platform-item"><span class="name">加密貨幣</span><span class="val private" id="kpi-cr-val">—</span></div>
+        <div class="platform-item"><span class="name">現金</span><span class="val private" id="kpi-cash-val">—</span></div>
+      </div>
     </div>
     <div class="card">
       <div class="card-label">未實現損益</div>
@@ -294,10 +300,6 @@
         <div class="platform-item"><span class="name">美元現金</span><span class="val private" id="cash-usd-val" style="cursor:pointer;border-bottom:1px dashed #3a4458" onclick="editBalance('cashUSD')" title="點擊編輯">—</span></div>
         <div class="platform-item"><span class="name">信貸</span><span class="val private" id="loan-val" style="cursor:pointer;border-bottom:1px dashed #3a4458" onclick="editBalance('loan')" title="點擊編輯">—</span></div>
       </div>
-    </div>
-    <div class="card">
-      <div class="card-label">各平台現值</div>
-      <div class="platform-list private" id="platform-list">—</div>
     </div>
   </div>
 
@@ -341,6 +343,7 @@
             <button class="filter-btn" onclick="setAsset('tw', this)">台股</button>
             <button class="filter-btn" onclick="setAsset('us', this)">美股</button>
             <button class="filter-btn" onclick="setAsset('crypto', this)">加密</button>
+            <button class="filter-btn" onclick="setAsset('cash', this)">現金</button>
           </div>
         </div>
       </div>
@@ -874,13 +877,14 @@
 <!-- ── 報酬率試算 ── -->
 <div id="page-returns" style="display:none">
   <div class="page-header">
-    <div><h1>📈 報酬率試算</h1><p>計算達成目標所需報酬率或資產成長模擬</p></div>
+    <div><h1>📈 投資試算</h1><p>報酬率、資產成長、股價與槓桿試算</p></div>
   </div>
   <!-- Tab 切換 -->
   <div style="display:flex;gap:0;margin-bottom:20px;border-bottom:1px solid #252830">
     <button id="rt-tab-1" onclick="switchRtTab(1)" style="padding:10px 20px;background:none;border:none;border-bottom:2px solid #4a9eff;color:#4a9eff;font-size:14px;font-weight:600;cursor:pointer">需要多少報酬率？</button>
     <button id="rt-tab-2" onclick="switchRtTab(2)" style="padding:10px 20px;background:none;border:none;border-bottom:2px solid transparent;color:#5a6780;font-size:14px;font-weight:600;cursor:pointer">資產成長模擬</button>
-    <button id="rt-tab-3" onclick="switchRtTab(3)" style="padding:10px 20px;background:none;border:none;border-bottom:2px solid transparent;color:#5a6780;font-size:14px;font-weight:600;cursor:pointer">股價試算</button>
+    <button id="rt-tab-3" onclick="switchRtTab(3)" style="padding:10px 20px;background:none;border:none;border-bottom:2px solid transparent;color:#5a6780;font-size:14px;font-weight:600;cursor:pointer">報酬率試算</button>
+    <button id="rt-tab-4" onclick="switchRtTab(4)" style="padding:10px 20px;background:none;border:none;border-bottom:2px solid transparent;color:#5a6780;font-size:14px;font-weight:600;cursor:pointer">槓桿試算</button>
   </div>
   <div style="display:grid;grid-template-columns:360px 1fr;gap:20px;align-items:start">
     <!-- 左：共用輸入 -->
@@ -945,6 +949,36 @@
           <input type="number" id="rt-sp-target" value="" min="0" step="0.01" placeholder="例：200.00" style="width:100%;padding:9px 12px;border:1px solid #2e3342;border-radius:7px;font-size:14px;background:#13161d;color:#e2e8f0;outline:none">
         </div>
         <button onclick="calcStockPrice()" style="width:100%;padding:11px;background:#1a3d2e;color:#3dd68c;border:1px solid #3dd68c;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer">計算</button>
+      </div>
+      <!-- 模式四：槓桿試算 -->
+      <div id="rt-mode4-inputs" style="display:none">
+        <div style="font-size:12px;color:#5a6780;margin-bottom:12px">以目前淨資產為基礎，模擬新增槓桿部位後的有效曝險槓桿</div>
+        <div style="display:flex;gap:8px;margin-bottom:16px">
+          <button id="rt-lev-cur-usd" onclick="setLevCurrency('USD')" style="flex:1;padding:8px;border-radius:7px;border:1px solid #4a9eff;background:#1a3a5c;color:#4a9eff;font-size:13px;font-weight:600;cursor:pointer">USD 美股</button>
+          <button id="rt-lev-cur-twd" onclick="setLevCurrency('TWD')" style="flex:1;padding:8px;border-radius:7px;border:1px solid #2e3342;background:none;color:#5a6780;font-size:13px;font-weight:600;cursor:pointer">TWD 台股</button>
+        </div>
+        <div class="form-group">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+            <label style="margin:0" id="rt-lev-price-label">買入價格（USD）</label>
+            <select id="rt-lev-symbol" onchange="fillLevPrice()" style="font-size:11px;padding:3px 6px;border:1px solid #2e3342;border-radius:5px;background:#13161d;color:#7a8499;outline:none;max-width:120px">
+              <option value="">手動輸入</option>
+            </select>
+          </div>
+          <input type="number" id="rt-lev-price" value="" min="0" step="0.01" placeholder="例：150.00" style="width:100%;padding:9px 12px;border:1px solid #2e3342;border-radius:7px;font-size:14px;background:#13161d;color:#e2e8f0;outline:none">
+        </div>
+        <div class="form-group">
+          <label>股數</label>
+          <input type="number" id="rt-lev-shares" value="" min="0" step="0.0001" placeholder="例：100" style="width:100%;padding:9px 12px;border:1px solid #2e3342;border-radius:7px;font-size:14px;background:#13161d;color:#e2e8f0;outline:none">
+        </div>
+        <div class="form-group">
+          <label>槓桿倍數</label>
+          <select id="rt-lev-mult" style="width:100%;padding:9px 12px;border:1px solid #2e3342;border-radius:7px;font-size:14px;background:#13161d;color:#e2e8f0;outline:none">
+            <option value="1">1x（一般）</option>
+            <option value="2" selected>2x（兩倍槓桿 ETF）</option>
+            <option value="3">3x（三倍槓桿 ETF）</option>
+          </select>
+        </div>
+        <button onclick="calcLeverage()" style="width:100%;padding:11px;background:#1a2a4a;color:#f6c90e;border:1px solid #f6c90e;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer">試算</button>
       </div>
     </div>
     <!-- 右：結果區 -->
@@ -1031,6 +1065,28 @@
           <div class="card" style="text-align:center">
             <div class="card-label">報酬率</div>
             <div class="card-value" id="rt-sp-pct" style="font-size:26px;color:#3dd68c">—</div>
+          </div>
+        </div>
+      </div>
+      <div id="rt-result-lev" style="display:none">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
+          <div class="card" style="text-align:center">
+            <div class="card-label">目前有效曝險槓桿</div>
+            <div class="card-value" id="rt-lev-current" style="font-size:26px">—</div>
+          </div>
+          <div class="card" style="text-align:center">
+            <div class="card-label">新增後有效曝險槓桿</div>
+            <div class="card-value" id="rt-lev-new" style="font-size:26px;color:#f6c90e">—</div>
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+          <div class="card" style="text-align:center">
+            <div class="card-label">新增曝險金額</div>
+            <div class="card-value" id="rt-lev-exp" style="font-size:22px">—</div>
+          </div>
+          <div class="card" style="text-align:center">
+            <div class="card-label">淨資產</div>
+            <div class="card-value" id="rt-lev-net" style="font-size:22px">—</div>
           </div>
         </div>
       </div>
@@ -2199,6 +2255,11 @@ function renderCards() {
   pnlEl.className = 'card-value private ' + (d.unrealizedPnl >= 0 ? 'positive' : 'negative');
   document.getElementById('unrealized-pct').textContent = '報酬率：' + (d.unrealizedPnl >= 0 ? '+' : '') + d.unrealizedPct + '%';
 
+  document.getElementById('kpi-tw-val').textContent   = fmtVal(d.twStock);
+  document.getElementById('kpi-us-val').textContent   = fmtVal(d.usStock);
+  document.getElementById('kpi-cr-val').textContent   = fmtVal(d.crypto);
+  document.getElementById('kpi-cash-val').textContent = fmtVal(totalCashTWD());
+
   document.getElementById('net-assets').textContent = fmtVal(d.netAssets);
   // 台幣現金直接顯示 TWD
   document.getElementById('cash-twd-val').textContent = 'NT$' + d.cashTWD.toLocaleString();
@@ -2736,10 +2797,11 @@ function buildChart(range, asset) {
   const labels = data.map(r => r[0]);
 
   const allSeries = {
-    all:    { label: '合計',   col: [4], color: '#4a9eff', bg: 'rgba(74,158,255,0.08)' },
-    tw:     { label: '台股',   col: [1], color: '#fbbf24', bg: 'rgba(251,191,36,0.08)' },
-    us:     { label: '美股',   col: [2], color: '#4a9eff', bg: 'rgba(74,158,255,0.08)' },
+    all:    { label: '合計',     col: [4], color: '#4a9eff', bg: 'rgba(74,158,255,0.08)' },
+    tw:     { label: '台股',     col: [1], color: '#fbbf24', bg: 'rgba(251,191,36,0.08)' },
+    us:     { label: '美股',     col: [2], color: '#3dd68c', bg: 'rgba(61,214,156,0.08)' },
     crypto: { label: '加密貨幣', col: [3], color: '#a78bfa', bg: 'rgba(167,139,250,0.08)' },
+    cash:   { label: '現金',     col: [5], color: '#34d399', bg: 'rgba(52,211,153,0.08)' },
   };
 
   let datasets;
@@ -2751,6 +2813,8 @@ function buildChart(range, asset) {
       { label: '加密貨幣', data: data.map(r => r[3]/divisor), borderColor: '#a78bfa', fill: false, tension: 0.4, pointRadius: 0, pointHoverRadius: 4, borderWidth: 1.5, borderDash: [4,3] },
       { label: '現金',   data: data.map(r => r[5] != null ? r[5]/divisor : null), borderColor: '#34d399', fill: false, tension: 0.4, pointRadius: 0, pointHoverRadius: 4, borderWidth: 1.5, borderDash: [4,3], spanGaps: false },
     ];
+  } else if (asset === 'cash') {
+    datasets = [{ label: '現金', data: data.map(r => r[5] != null ? r[5]/divisor : null), borderColor: '#34d399', backgroundColor: 'rgba(52,211,153,0.08)', fill: true, tension: 0.4, pointRadius: 0, pointHoverRadius: 5, borderWidth: 2, spanGaps: false }];
   } else {
     const s = allSeries[asset];
     datasets = [{ label: s.label, data: data.map(r => r[s.col[0]]/divisor), borderColor: s.color, backgroundColor: s.bg, fill: true, tension: 0.4, pointRadius: 0, pointHoverRadius: 5, borderWidth: 2 }];
@@ -3687,18 +3751,23 @@ function calcReturnRate() {
 }
 
 function switchRtTab(tab) {
-  const colors = { 1: '#4a9eff', 2: '#a78bfa', 3: '#3dd68c' };
-  [1, 2, 3].forEach(i => {
+  const colors = { 1: '#4a9eff', 2: '#a78bfa', 3: '#3dd68c', 4: '#f6c90e' };
+  [1, 2, 3, 4].forEach(i => {
+    const el = document.getElementById(`rt-tab-${i}`);
+    if (!el) return;
     const c = tab === i ? colors[i] : '#5a6780';
-    document.getElementById(`rt-tab-${i}`).style.cssText = `padding:10px 20px;background:none;border:none;border-bottom:2px solid ${tab===i?colors[i]:'transparent'};color:${c};font-size:14px;font-weight:600;cursor:pointer`;
+    el.style.cssText = `padding:10px 20px;background:none;border:none;border-bottom:2px solid ${tab===i?colors[i]:'transparent'};color:${c};font-size:14px;font-weight:600;cursor:pointer`;
   });
-  document.getElementById('rt-shared-inputs').style.display = tab === 3 ? 'none' : '';
+  document.getElementById('rt-shared-inputs').style.display = (tab === 3 || tab === 4) ? 'none' : '';
   document.getElementById('rt-mode1-inputs').style.display = tab === 1 ? '' : 'none';
   document.getElementById('rt-mode2-inputs').style.display = tab === 2 ? '' : 'none';
   document.getElementById('rt-mode3-inputs').style.display = tab === 3 ? '' : 'none';
+  document.getElementById('rt-mode4-inputs').style.display = tab === 4 ? '' : 'none';
+  if (tab === 4) { buildLevSymbolOptions(); }
   document.getElementById('rt-result-rate').style.display = 'none';
   document.getElementById('rt-result-sim').style.display = 'none';
   document.getElementById('rt-result-stock').style.display = 'none';
+  document.getElementById('rt-result-lev').style.display = 'none';
   document.getElementById('rt-placeholder').style.display = '';
 }
 
@@ -3762,6 +3831,69 @@ function calcStockPrice() {
   document.getElementById('rt-sp-total').style.color  = pnlCls;
 
   document.getElementById('rt-result-stock').style.display = '';
+  document.getElementById('rt-result-rate').style.display  = 'none';
+  document.getElementById('rt-result-sim').style.display   = 'none';
+  document.getElementById('rt-result-lev').style.display   = 'none';
+  document.getElementById('rt-placeholder').style.display  = 'none';
+}
+
+let _levCurrency = 'USD';
+
+function setLevCurrency(cur) {
+  _levCurrency = cur;
+  const isUSD = cur === 'USD';
+  document.getElementById('rt-lev-cur-usd').style.cssText = `flex:1;padding:8px;border-radius:7px;border:1px solid ${isUSD?'#4a9eff':'#2e3342'};background:${isUSD?'#1a3a5c':'none'};color:${isUSD?'#4a9eff':'#5a6780'};font-size:13px;font-weight:600;cursor:pointer`;
+  document.getElementById('rt-lev-cur-twd').style.cssText = `flex:1;padding:8px;border-radius:7px;border:1px solid ${!isUSD?'#f6c90e':'#2e3342'};background:${!isUSD?'#2a2010':'none'};color:${!isUSD?'#f6c90e':'#5a6780'};font-size:13px;font-weight:600;cursor:pointer`;
+  document.getElementById('rt-lev-price-label').textContent = isUSD ? '買入價格（USD）' : '買入價格（TWD）';
+  // 重建持倉下拉
+  buildLevSymbolOptions();
+  document.getElementById('rt-lev-price').value = '';
+}
+
+function buildLevSymbolOptions() {
+  const isUSD = _levCurrency === 'USD';
+  const holdings = isUSD
+    ? RAW.usHoldings.filter(h => !h.isTotal && h.price)
+    : RAW.twHoldings.filter(h => !h.isTotal && h.price);
+  const sel = document.getElementById('rt-lev-symbol');
+  sel.innerHTML = '<option value="">手動輸入</option>' +
+    holdings.map(h => `<option value="${h.code}">${h.code}（${isUSD?'US$':'NT$'}${h.price}）</option>`).join('');
+}
+
+function fillLevPrice() {
+  const code = document.getElementById('rt-lev-symbol').value;
+  if (!code) return;
+  const isUSD = _levCurrency === 'USD';
+  const holdings = isUSD ? RAW.usHoldings : RAW.twHoldings;
+  const h = holdings.find(h => h.code === code);
+  if (h) document.getElementById('rt-lev-price').value = h.price;
+}
+
+function calcLeverage() {
+  const price  = parseFloat(document.getElementById('rt-lev-price').value) || 0;
+  const shares = parseFloat(document.getElementById('rt-lev-shares').value) || 0;
+  const mult   = parseFloat(document.getElementById('rt-lev-mult').value) || 1;
+  if (!price || !shares) return;
+
+  const isUSD = _levCurrency === 'USD';
+  const mktValTWD = isUSD ? price * shares * usdtwd : price * shares;
+
+  const d = RAW.summary;
+  const netAssets = d.netAssets || 0;
+  if (!netAssets) { alert('淨資產為 0，無法計算'); return; }
+
+  const currentEffLev = d.effectiveLeverage || 0;
+  const addedExp = mktValTWD * mult;
+  const currentExp = currentEffLev / 100 * netAssets;
+  const newEffLev = (currentExp + addedExp) / netAssets * 100;
+
+  document.getElementById('rt-lev-current').textContent = currentEffLev.toFixed(1) + '%';
+  document.getElementById('rt-lev-new').textContent     = newEffLev.toFixed(1) + '%';
+  document.getElementById('rt-lev-exp').textContent     = 'NT$' + Math.round(addedExp).toLocaleString();
+  document.getElementById('rt-lev-net').textContent     = 'NT$' + Math.round(netAssets).toLocaleString();
+
+  document.getElementById('rt-result-lev').style.display   = '';
+  document.getElementById('rt-result-stock').style.display = 'none';
   document.getElementById('rt-result-rate').style.display  = 'none';
   document.getElementById('rt-result-sim').style.display   = 'none';
   document.getElementById('rt-placeholder').style.display  = 'none';
@@ -4076,6 +4208,13 @@ function renderDebtPage() {
   document.getElementById('debt-monthly-sum').textContent = 'NT$' + totalMonthly.toLocaleString(undefined, {maximumFractionDigits:0});
   document.getElementById('debt-total-interest').textContent = 'NT$' + Math.round(totalInterest).toLocaleString();
   document.getElementById('debt-avg-rate').textContent = avgRate.toFixed(2) + '%';
+
+  // 同步剩餘本金到 RAW.summary.loan，讓淨資產卡片自動聯動
+  if (RAW.summary.loan !== Math.round(totalRemaining)) {
+    RAW.summary.loan = Math.round(totalRemaining);
+    recalcSummary();
+    saveStorage();
+  }
 
   tbody.innerHTML = debts.map(d => {
     // 自動計算：從撥款日到今天已還幾期，推算當前餘額與剩餘期數
