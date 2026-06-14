@@ -2269,25 +2269,6 @@ function renderCards() {
     : 'US$' + d.cashUSD.toLocaleString(undefined,{minimumFractionDigits:0,maximumFractionDigits:2});
   document.getElementById('loan-val').textContent = fmtVal(d.loan);
 
-  // 保留展開狀態
-  const twOpen     = document.getElementById('breakdown-tw')?.style.display === 'block';
-  const usOpen     = document.getElementById('breakdown-us')?.style.display === 'block';
-  const cryptoOpen = document.getElementById('breakdown-crypto')?.style.display === 'block';
-
-  document.getElementById('platform-list').innerHTML = `
-    <div class="platform-item" style="cursor:pointer" onclick="toggleBreakdown('tw')">
-      <span class="name">台股 <span style="color:#3a4458;font-size:10px">▾</span></span><span class="val">${fmtVal(d.twStock)}</span>
-    </div>
-    <div id="breakdown-tw" style="display:${twOpen ? 'block' : 'none'};margin-bottom:4px">${buildBreakdown('tw')}</div>
-    <div class="platform-item" style="cursor:pointer" onclick="toggleBreakdown('us')">
-      <span class="name">美股 <span style="color:#3a4458;font-size:10px">▾</span></span><span class="val">${fmtVal(d.usStock)}</span>
-    </div>
-    <div id="breakdown-us" style="display:${usOpen ? 'block' : 'none'};margin-bottom:4px">${buildBreakdown('us')}</div>
-    <div class="platform-item" style="cursor:pointer" onclick="toggleBreakdown('crypto')">
-      <span class="name">加密貨幣 <span style="color:#3a4458;font-size:10px">▾</span></span><span class="val">${fmtVal(d.crypto)}</span>
-    </div>
-    <div id="breakdown-crypto" style="display:${cryptoOpen ? 'block' : 'none'};margin-bottom:4px">${buildBreakdown('crypto')}</div>
-  `;
 
 }
 
