@@ -1192,27 +1192,28 @@ const RAW = {
     twStock: 0, usStock: 0, crypto: 0,
   },
   twHoldings: [
-    { code: '0050', name: '元大台灣50', shares: 12000, avgPrice: 68.05, price: null, pnl: 0, pnlPct: 0 },
-    { code: '006208', name: '富邦台50', shares: 42, avgPrice: 116.79, price: null, pnl: 0, pnlPct: 0 },
-    { code: '2330', name: '台積電', shares: 100, avgPrice: 1062.44, price: null, pnl: 0, pnlPct: 0 },
+    { code: '0050', name: '元大台灣50', shares: 10000, avgPrice: 68.05, price: null, pnl: 0, pnlPct: 0 },
+    { code: '2330', name: '台積電', shares: 110, avgPrice: 1181.31, price: null, pnl: 0, pnlPct: 0 },
     { code: '2404', name: '漢唐', shares: 100, avgPrice: 1070.00, price: null, pnl: 0, pnlPct: 0 },
-    { code: '4772', name: '台特化', shares: 300, avgPrice: 337.37, price: null, pnl: 0, pnlPct: 0 },
+    { code: '00631L', name: '元大台灣50正2', shares: 2000, avgPrice: 35.29, price: null, pnl: 0, pnlPct: 0, leverage: 2 },
     { code: '總和', shares: null, avgPrice: null, price: null, pnl: 0, pnlPct: 0, isTotal: true },
   ],
   cryptoHoldings: [
+    { code: 'BTC', name: 'Bitcoin USD', shares: 0.0265, avgPrice: 67000.00, price: null, pnl: 0, pnlPct: 0 },
+    { code: 'SOL', name: 'Solana USD', shares: 4, avgPrice: 200.00, price: null, pnl: 0, pnlPct: 0 },
     { code: '總和', shares: null, avgPrice: null, price: null, pnl: 0, pnlPct: 0, isTotal: true },
   ],
   usHoldings: [
-    { code: 'AVL', shares: 33.24567, avgPrice: 51.49422, price: null, pnl: 0, pnlPct: 0 },
-    { code: 'NAK', shares: 197, avgPrice: 2.5599, price: null, pnl: 0, pnlPct: 0 },
-    { code: 'NVDA', shares: 2.00022, avgPrice: 177.70045, price: null, pnl: 0, pnlPct: 0 },
-    { code: 'NVDL', shares: 13, avgPrice: 78.95769, price: null, pnl: 0, pnlPct: 0, leverage: 2 },
-    { code: 'PLTR', shares: 1, avgPrice: 169.38, price: null, pnl: 0, pnlPct: 0 },
-    { code: 'QLD', shares: 8.01201, avgPrice: 70.48419, price: null, pnl: 0, pnlPct: 0, leverage: 2 },
-    { code: 'SSO', shares: 8, avgPrice: 53.00, price: null, pnl: 0, pnlPct: 0, leverage: 2 },
-    { code: 'TSLA', shares: 3, avgPrice: 466.21, price: null, pnl: 0, pnlPct: 0 },
-    { code: 'TSLL', shares: 352.18345, avgPrice: 14.19016, price: null, pnl: 0, pnlPct: 0, leverage: 2 },
-    { code: 'VOO', shares: 7.01554, avgPrice: 632.05113, price: null, pnl: 0, pnlPct: 0 },
+    { code: 'VOO', name: 'Vanguard S&P 500 ETF', shares: 7, avgPrice: 632.05, price: null, pnl: 0, pnlPct: 0 },
+    { code: 'NVDL', name: 'GraniteShares 2x Long NVDA Daily', shares: 13, avgPrice: 78.96, price: null, pnl: 0, pnlPct: 0, leverage: 2 },
+    { code: 'QLD', name: 'ProShares Ultra QQQ', shares: 8, avgPrice: 70.48, price: null, pnl: 0, pnlPct: 0, leverage: 2 },
+    { code: 'SSO', name: 'ProShares Ultra S&P500', shares: 8, avgPrice: 53.00, price: null, pnl: 0, pnlPct: 0, leverage: 2 },
+    { code: 'NVDA', name: 'NVIDIA Corporation', shares: 2, avgPrice: 177.70, price: null, pnl: 0, pnlPct: 0 },
+    { code: 'AVL', name: 'Direxion Daily AVGO Bull 2X ETF', shares: 33, avgPrice: 51.49, price: null, pnl: 0, pnlPct: 0, leverage: 2 },
+    { code: 'AAPL', name: 'Apple Inc.', shares: 1, avgPrice: 300.14, price: null, pnl: 0, pnlPct: 0 },
+    { code: 'PLTR', name: 'Palantir Technologies Inc.', shares: 1, avgPrice: 169.38, price: null, pnl: 0, pnlPct: 0 },
+    { code: 'TSLA', name: 'Tesla, Inc.', shares: 3, avgPrice: 466.21, price: null, pnl: 0, pnlPct: 0 },
+    { code: 'TSLL', name: 'Direxion Daily TSLA Bull 2X ETF', shares: 352, avgPrice: 14.19, price: null, pnl: 0, pnlPct: 0, leverage: 2 },
     { code: '總和', shares: null, avgPrice: null, price: null, pnl: 0, pnlPct: 0, isTotal: true },
   ],
   // [日期, 台股, 美股, 加密, 合計]
@@ -3338,7 +3339,7 @@ document.getElementById('alloc-modal').addEventListener('click', e => {
 // ──────────────────────────────────────────────────────
 
 let pieChart;
-let _pieDrillMode = null; // null=總覽, 'tw'/'us'/'crypto'
+let _pieDrillMode = null; // null=總覽, 'tw'/'us'/'crypto'/'cash'
 let _pieLastMode = undefined; // 上次 mode，用來判斷是否需要 destroy
 
 function renderPieChart(drillType) {
@@ -3365,6 +3366,15 @@ function renderPieChart(drillType) {
     labels = ['台股', '美股', '加密', '現金'];
     values = [tw, us, cr, cash];
     colors = ['#f6c90e', '#4a9eff', '#a78bfa', '#34d399'];
+  } else if (_pieDrillMode === 'cash') {
+    // 現金 drill-down：台幣現金 + 美元現金（換算 TWD）
+    const twd = RAW.summary.cashTWD || 0;
+    const usd = Math.round((RAW.summary.cashUSD || 0) * usdtwd);
+    total = twd + usd;
+    if (total <= 0) return;
+    labels = ['台幣現金', '美元現金'];
+    values = [twd, usd];
+    colors = ['#34d399', '#4a9eff'];
   } else {
     // Drill-down 模式：顯示該板塊個股
     const isTW = _pieDrillMode === 'tw';
@@ -3380,12 +3390,16 @@ function renderPieChart(drillType) {
       renderAllocBars();
       return;
     }
-    total  = rows.reduce((s, h) => s + h.price * h.shares * (isTW ? 1 : usdtwd), 0);
+    const isCrypto = _pieDrillMode === 'crypto';
+    const stockTotal = rows.reduce((s, h) => s + h.price * h.shares * (isTW ? 1 : usdtwd), 0);
+    const cashExtra = isCrypto ? 0 : isTW ? (RAW.summary.cashTWD || 0) : Math.round((RAW.summary.cashUSD || 0) * usdtwd);
+    const cashLabel = isTW ? '台幣現金' : '美元現金';
+    total  = stockTotal + cashExtra;
     if (total <= 0) return;
-    labels = rows.map(h => h.code.replace('.TW',''));
-    values = rows.map(h => h.price * h.shares * (isTW ? 1 : usdtwd));
+    labels = cashExtra > 0 ? [...rows.map(h => h.code.replace('.TW','')), cashLabel] : rows.map(h => h.code.replace('.TW',''));
+    values = cashExtra > 0 ? [...rows.map(h => h.price * h.shares * (isTW ? 1 : usdtwd)), cashExtra] : rows.map(h => h.price * h.shares * (isTW ? 1 : usdtwd));
     const palette = ['#4a9eff','#34d399','#f6c90e','#f87171','#a78bfa','#fb923c','#2dd4bf','#e879f9','#60a5fa','#a3e635'];
-    colors = rows.map((_, i) => palette[i % palette.length]);
+    colors = cashExtra > 0 ? [...rows.map((_, i) => palette[i % palette.length]), '#34d399'] : rows.map((_, i) => palette[i % palette.length]);
   }
 
   if (pieChart) {
@@ -3411,7 +3425,7 @@ function renderPieChart(drillType) {
           if (_pieDrillMode) return;
           if (!elements.length) return;
           const idx = elements[0].index;
-          const typeMap = { 0: 'tw', 1: 'us', 2: 'crypto', 3: null };
+          const typeMap = { 0: 'tw', 1: 'us', 2: 'crypto', 3: 'cash' };
           const t = typeMap[idx];
           if (t) renderPieChart(t);
         },
@@ -3440,7 +3454,7 @@ function renderPieChart(drillType) {
            <button onclick="renderPieChart(null)" style="background:none;border:1px solid #2e3342;border-radius:5px;color:#4a9eff;font-size:11px;padding:3px 10px;cursor:pointer">← 返回總覽</button>
          </div>`
       : '';
-    const drillRows = _pieDrillMode
+    const drillRows = (_pieDrillMode && _pieDrillMode !== 'cash')
       ? (_pieDrillMode === 'tw' ? RAW.twHoldings : _pieDrillMode === 'us' ? RAW.usHoldings : RAW.cryptoHoldings)
           .filter(h => !h.isTotal && h.price != null)
       : [];
@@ -3448,8 +3462,9 @@ function renderPieChart(drillType) {
     legendEl.innerHTML = backBtn + labels.map((l, i) => {
       const pct = (values[i] / total * 100).toFixed(1);
       if (!_pieDrillMode) {
-        const clickable = i < 3
-          ? `style="cursor:pointer" onclick="renderPieChart('${['tw','us','crypto'][i]}')" title="點擊查看個股"` : '';
+        const drillTypes = ['tw','us','crypto','cash'];
+        const clickable = drillTypes[i]
+          ? `style="cursor:pointer" onclick="renderPieChart('${drillTypes[i]}')" title="點擊查看細項"` : '';
         return `<div class="pie-legend-item" ${clickable}>
           <span class="pie-legend-dot" style="background:${colors[i]}"></span>
           <span class="pie-legend-label">${l}</span>
