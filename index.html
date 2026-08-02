@@ -240,6 +240,7 @@
       <div class="nav-item" onclick="showPage('debt')"><span class="nav-icon">💳</span><span class="nav-label">負債管理</span></div>
       <div class="nav-item" onclick="showPage('mortgage')"><span class="nav-icon">🏠</span><span class="nav-label">房貸試算</span></div>
       <div class="nav-item" onclick="showPage('returns')"><span class="nav-icon">📈</span><span class="nav-label">投資試算</span></div>
+      <div class="nav-item" onclick="showPage('macro')"><span class="nav-icon">🌐</span><span class="nav-label">總經監控</span></div>
     </nav>
     <div class="sidebar-footer">
       <div class="sidebar-footer-text">
@@ -1094,6 +1095,113 @@
     </div>
   </div>
 </div><!-- /page-returns -->
+
+<!-- 總經監控頁面 -->
+<div id="page-macro" style="display:none">
+  <!-- 頁首 -->
+  <div class="page-header" style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px">
+    <div>
+      <h1>🌐 總經監控</h1>
+      <p>全球市場即時指標｜<span id="macro-last-update" style="color:#4a5568">—</span></p>
+    </div>
+    <button class="btn" onclick="refreshMacro()" id="macro-refresh-btn">重新整理</button>
+  </div>
+
+  <!-- 主體：左數據 + 右評析 -->
+  <div style="display:grid;grid-template-columns:1fr 340px;gap:16px;align-items:start">
+
+    <!-- 左欄：數據 -->
+    <div>
+      <!-- 美股 -->
+      <div style="display:flex;align-items:baseline;gap:8px;margin-bottom:8px">
+        <div style="font-size:11px;font-weight:600;color:#5a6780;letter-spacing:.08em;text-transform:uppercase">美股市場</div>
+        <div style="font-size:11px;color:#3a4260">Yahoo Finance｜延遲 15 分鐘</div>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px">
+        <div class="card"><div class="card-label">S&P 500</div><div class="card-value" id="m-spy" style="font-size:22px">—</div><div class="card-sub" id="m-spy-chg">—</div></div>
+        <div class="card"><div class="card-label">NASDAQ QQQ</div><div class="card-value" id="m-qqq" style="font-size:22px">—</div><div class="card-sub" id="m-qqq-chg">—</div></div>
+        <div class="card"><div class="card-label">VIX 恐慌指數</div><div class="card-value" id="m-vix" style="font-size:22px">—</div><div class="card-sub" id="m-vix-sub" style="font-size:12px">—</div></div>
+        <div class="card"><div class="card-label">美元指數 DXY</div><div class="card-value" id="m-dxy" style="font-size:22px">—</div><div class="card-sub" id="m-dxy-chg">—</div></div>
+      </div>
+
+      <!-- 台灣 -->
+      <div style="display:flex;align-items:baseline;gap:8px;margin-bottom:8px">
+        <div style="font-size:11px;font-weight:600;color:#5a6780;letter-spacing:.08em;text-transform:uppercase">台灣市場</div>
+        <div style="font-size:11px;color:#3a4260">Yahoo Finance｜延遲 15 分鐘</div>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px">
+        <div class="card"><div class="card-label">加權指數</div><div class="card-value" id="m-twii" style="font-size:22px">—</div><div class="card-sub" id="m-twii-chg">—</div></div>
+        <div class="card"><div class="card-label">USD/TWD</div><div class="card-value" id="m-usdtwd" style="font-size:22px">—</div><div class="card-sub" id="m-usdtwd-chg">—</div></div>
+        <div class="card"><div class="card-label">0050</div><div class="card-value" id="m-0050" style="font-size:22px">—</div><div class="card-sub" id="m-0050-chg">—</div></div>
+        <div class="card"><div class="card-label">00631L 台50正2</div><div class="card-value" id="m-00631l" style="font-size:22px">—</div><div class="card-sub" id="m-00631l-chg">—</div></div>
+      </div>
+
+      <!-- 商品＋債券 -->
+      <div style="display:flex;align-items:baseline;gap:8px;margin-bottom:8px">
+        <div style="font-size:11px;font-weight:600;color:#5a6780;letter-spacing:.08em;text-transform:uppercase">商品 ／ 債券</div>
+        <div style="font-size:11px;color:#3a4260">Yahoo Finance｜延遲 15 分鐘</div>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px">
+        <div class="card"><div class="card-label">黃金 (USD/oz)</div><div class="card-value" id="m-gold" style="font-size:22px">—</div><div class="card-sub" id="m-gold-chg">—</div></div>
+        <div class="card"><div class="card-label">WTI 原油 (USD)</div><div class="card-value" id="m-oil" style="font-size:22px">—</div><div class="card-sub" id="m-oil-chg">—</div></div>
+        <div class="card"><div class="card-label">美債 10年</div><div class="card-value" id="m-tnx" style="font-size:22px">—</div><div class="card-sub" id="m-tnx-chg">—</div></div>
+        <div class="card"><div class="card-label">美債 2年</div><div class="card-value" id="m-irx" style="font-size:22px">—</div><div class="card-sub" id="m-irx-chg">—</div></div>
+      </div>
+
+      <!-- 總體經濟 -->
+      <div style="display:flex;align-items:baseline;gap:8px;margin-bottom:8px">
+        <div style="font-size:11px;font-weight:600;color:#5a6780;letter-spacing:.08em;text-transform:uppercase">總體經濟</div>
+        <div style="font-size:11px;color:#3a4260">FRED 聖路易聯準會｜月頻</div>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px">
+        <div class="card"><div class="card-label">聯準會利率</div><div class="card-value" id="m-fedfunds" style="font-size:22px">—</div><div class="card-sub" id="m-fedfunds-target" style="font-size:12px;color:#4a9eff">目標區間：—</div><div class="card-sub" id="m-fedfunds-sub" style="font-size:11px">—</div></div>
+        <div class="card"><div class="card-label">CPI YoY</div><div class="card-value" id="m-cpi" style="font-size:22px">—</div><div class="card-sub" id="m-cpi-sub" style="font-size:12px">—</div></div>
+        <div class="card"><div class="card-label">核心 PCE YoY</div><div class="card-value" id="m-pce" style="font-size:22px">—</div><div class="card-sub" id="m-pce-sub" style="font-size:12px">—</div></div>
+        <div class="card"><div class="card-label">失業率</div><div class="card-value" id="m-unrate" style="font-size:22px">—</div><div class="card-sub" id="m-unrate-sub" style="font-size:12px">—</div></div>
+      </div>
+
+      <!-- FactSet Earnings Insight -->
+      <div style="display:flex;align-items:baseline;gap:8px;margin-bottom:8px;margin-top:16px">
+        <div style="font-size:11px;font-weight:600;color:#5a6780;letter-spacing:.08em;text-transform:uppercase">S&P 500 財報季</div>
+        <div style="font-size:11px;color:#3a4260">FactSet Earnings Insight｜<span id="factset-date" style="color:#4a5568">—</span></div>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:4px" id="factset-grid">
+        <div class="card"><div class="card-label">EPS Beat %</div><div class="card-value" id="fs-eps-beat" style="font-size:22px">—</div><div class="card-sub" id="fs-eps-beat-sub" style="font-size:11px">—</div></div>
+        <div class="card"><div class="card-label">盈餘成長率</div><div class="card-value" id="fs-eg" style="font-size:22px">—</div><div class="card-sub" id="fs-eg-sub" style="font-size:11px">—</div></div>
+        <div class="card"><div class="card-label">營收成長率</div><div class="card-value" id="fs-rg" style="font-size:22px">—</div><div class="card-sub" id="fs-rg-sub" style="font-size:11px">—</div></div>
+        <div class="card"><div class="card-label">Forward P/E</div><div class="card-value" id="fs-pe" style="font-size:22px">—</div><div class="card-sub" id="fs-pe-sub" style="font-size:11px">—</div></div>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px">
+        <div class="card"><div class="card-label">已報告家數</div><div class="card-value" id="fs-reporting" style="font-size:22px">—</div><div class="card-sub" style="font-size:11px">佔 S&P 500</div></div>
+        <div class="card"><div class="card-label">營收 Beat %</div><div class="card-value" id="fs-rev-beat" style="font-size:22px">—</div><div class="card-sub" id="fs-rev-beat-sub" style="font-size:11px">—</div></div>
+        <div class="card"><div class="card-label">Q3 盈餘預估</div><div class="card-value" id="fs-q3" style="font-size:22px">—</div><div class="card-sub" style="font-size:11px">YoY 預估</div></div>
+        <div class="card"><div class="card-label">CY 全年預估</div><div class="card-value" id="fs-cy" style="font-size:22px">—</div><div class="card-sub" style="font-size:11px">YoY 預估</div></div>
+      </div>
+    </div>
+
+    <!-- 右欄：評析 -->
+    <div style="background:#1a1d26;border:1px solid #252830;border-radius:10px;padding:18px 20px;position:sticky;top:20px">
+      <div style="font-size:12px;font-weight:600;color:#7a8499;letter-spacing:.05em;text-transform:uppercase;margin-bottom:14px">市場評析</div>
+
+      <!-- 整體情緒 -->
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;padding-bottom:14px;border-bottom:1px solid #252830">
+        <div id="macro-sentiment-dot" style="width:10px;height:10px;border-radius:50%;background:#5a6780;flex-shrink:0"></div>
+        <div id="macro-sentiment-label" style="font-size:14px;font-weight:700;color:#e2e8f0">載入中…</div>
+      </div>
+
+      <!-- 各項目評析 -->
+      <div id="macro-analysis-list" style="display:flex;flex-direction:column;gap:0">
+        <div style="color:#4a5568;font-size:13px;text-align:center;padding:20px 0">資料載入後自動生成</div>
+      </div>
+
+      <!-- 本日重點 -->
+      <div id="macro-summary" style="display:none;margin-top:14px;padding-top:12px;border-top:1px solid #252830">
+        <div style="font-size:11px;font-weight:600;color:#5a6780;letter-spacing:.05em;text-transform:uppercase;margin-bottom:6px">本日重點</div>
+      </div>
+    </div>
+
+  </div>
+</div><!-- /page-macro -->
 
 <!-- 新增/編輯貸款 Modal -->
 <div id="debt-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:1000;align-items:center;justify-content:center;">
@@ -4076,13 +4184,14 @@ function deleteLedgerEntry(idx) {
 
 // ── 分頁切換 ──────────────────────────────────────────────────────
 function showPage(page) {
-  ['overview','debt','mortgage','returns'].forEach(p => {
+  ['overview','debt','mortgage','returns','macro'].forEach(p => {
     document.getElementById('page-' + p).style.display = page === p ? '' : 'none';
   });
   document.querySelectorAll('.nav-item').forEach((el, i) => {
-    el.classList.toggle('active', ['overview','debt','mortgage','returns'][i] === page);
+    el.classList.toggle('active', ['overview','debt','mortgage','returns','macro'][i] === page);
   });
   if (page === 'debt') renderDebtPage();
+  if (page === 'macro') initMacro();
 }
 
 // ── 負債管理 ──────────────────────────────────────────────────────
@@ -4340,6 +4449,436 @@ if (_urlSheetId) localStorage.setItem(SHEET_ID_KEY, _urlSheetId);
     renderDebtPage && renderDebtPage();
   }
 })();
+</script>
+
+<script>
+// ── 總經監控 ──────────────────────────────────────────────────────
+const FRED_KEY = '10b4c30bbf29d1ba7a1b29d797ffecea';
+const PROXY = 'http://localhost:3100';
+let macroInitialized = false;
+
+async function fetchYF(symbol) {
+  try {
+    const r = await fetch(`${PROXY}/${encodeURIComponent(symbol)}`);
+    const j = await r.json();
+    const meta = j?.chart?.result?.[0]?.meta;
+    if (!meta) return null;
+    return {
+      price: meta.regularMarketPrice,
+      prev:  meta.chartPreviousClose || meta.previousClose,
+    };
+  } catch { return null; }
+}
+
+async function fetchFRED(series) {
+  try {
+    const url = `${PROXY}/fred?series_id=${series}&api_key=${FRED_KEY}&sort_order=desc&limit=2&file_type=json`;
+    const r = await fetch(url);
+    const j = await r.json();
+    const obs = j?.observations?.filter(o => o.value !== '.');
+    if (!obs?.length) return null;
+    return { value: parseFloat(obs[0].value), date: obs[0].date, prev: obs[1] ? parseFloat(obs[1].value) : null };
+  } catch { return null; }
+}
+
+function setMacroCard(idVal, idSub, value, prev, fmt, subFn) {
+  const el = document.getElementById(idVal);
+  const sub = document.getElementById(idSub);
+  if (!el) return;
+  if (value === null) { el.textContent = '—'; if (sub) sub.textContent = '取得失敗'; return; }
+  el.textContent = fmt(value);
+  if (sub && prev !== null && prev !== undefined) {
+    const chg = value - prev;
+    const pct = prev !== 0 ? (chg / Math.abs(prev) * 100) : 0;
+    sub.textContent = subFn ? subFn(chg, pct) : `${chg >= 0 ? '+' : ''}${chg.toFixed(2)} (${pct >= 0 ? '+' : ''}${pct.toFixed(2)}%)`;
+    sub.style.color = chg >= 0 ? '#3dd68c' : '#f56565';
+  }
+}
+
+function fmtPct(v) { return v.toFixed(2) + '%'; }
+function fmtNum2(v) { return v.toFixed(2); }
+function fmtInt(v) { return Math.round(v).toLocaleString(); }
+
+async function loadMacroData() {
+  const btn = document.getElementById('macro-refresh-btn');
+  if (btn) btn.textContent = '載入中…';
+
+  const [spy, qqq, vix, dxy, twii, usdtwd, t0050, t00631l, gold, oil, tnx, irx] = await Promise.all([
+    fetchYF('^GSPC'), fetchYF('QQQ'), fetchYF('^VIX'), fetchYF('DX-Y.NYB'),
+    fetchYF('^TWII'), fetchYF('USDTWD=X'), fetchYF('0050.TW'), fetchYF('00631L.TW'),
+    fetchYF('GC=F'), fetchYF('CL=F'), fetchYF('^TNX'), fetchYF('^IRX'),
+  ]);
+
+  const [fedfunds, cpi, pce, unrate, fedTarU, fedTarL] = await Promise.all([
+    fetchFRED('FEDFUNDS'), fetchFRED('CPIAUCSL'), fetchFRED('PCEPI'), fetchFRED('UNRATE'),
+    fetchFRED('DFEDTARU'), fetchFRED('DFEDTARL'),
+  ]);
+
+  // 美股
+  setMacroCard('m-spy', 'm-spy-chg', spy?.price ?? null, spy?.prev ?? null, fmtNum2);
+  setMacroCard('m-qqq', 'm-qqq-chg', qqq?.price ?? null, qqq?.prev ?? null, fmtNum2);
+
+  const vixEl = document.getElementById('m-vix');
+  const vixSub = document.getElementById('m-vix-sub');
+  if (vix?.price) {
+    vixEl.textContent = vix.price.toFixed(2);
+    const level = vix.price < 15 ? { txt: '市場平靜', col: '#3dd68c' } : vix.price < 25 ? { txt: '正常波動', col: '#f59e0b' } : { txt: '市場恐慌', col: '#f56565' };
+    vixSub.textContent = level.txt; vixSub.style.color = level.col;
+    vixEl.style.color = level.col;
+  } else { vixEl.textContent = '—'; vixSub.textContent = '取得失敗'; }
+
+  setMacroCard('m-dxy', 'm-dxy-chg', dxy?.price ?? null, dxy?.prev ?? null, fmtNum2);
+
+  // 台灣
+  setMacroCard('m-twii', 'm-twii-chg', twii?.price ?? null, twii?.prev ?? null, fmtInt);
+  const twdEl = document.getElementById('m-usdtwd');
+  const twdSub = document.getElementById('m-usdtwd-chg');
+  if (usdtwd?.price) {
+    twdEl.textContent = usdtwd.price.toFixed(3);
+    const chg = usdtwd.price - usdtwd.prev;
+    twdSub.textContent = `${chg >= 0 ? '+' : ''}${chg.toFixed(3)}`;
+    twdSub.style.color = chg >= 0 ? '#f56565' : '#3dd68c'; // 台幣貶值（USD漲）是負面
+  } else { twdEl.textContent = '—'; twdSub.textContent = '取得失敗'; }
+  setMacroCard('m-0050', 'm-0050-chg', t0050?.price ?? null, t0050?.prev ?? null, fmtNum2);
+  setMacroCard('m-00631l', 'm-00631l-chg', t00631l?.price ?? null, t00631l?.prev ?? null, fmtNum2);
+
+  // 商品
+  setMacroCard('m-gold', 'm-gold-chg', gold?.price ?? null, gold?.prev ?? null, fmtInt);
+  setMacroCard('m-oil', 'm-oil-chg', oil?.price ?? null, oil?.prev ?? null, fmtNum2);
+  setMacroCard('m-tnx', 'm-tnx-chg', tnx?.price ?? null, tnx?.prev ?? null, fmtPct);
+  setMacroCard('m-irx', 'm-irx-chg', irx?.price ?? null, irx?.prev ?? null, fmtPct);
+
+  // FRED 總經
+  const fredCards = [
+    { valId: 'm-fedfunds', subId: 'm-fedfunds-sub', data: fedfunds, fmt: fmtPct },
+    { valId: 'm-cpi',      subId: 'm-cpi-sub',      data: cpi,      fmt: fmtPct },
+    { valId: 'm-pce',      subId: 'm-pce-sub',      data: pce,      fmt: fmtPct },
+    { valId: 'm-unrate',   subId: 'm-unrate-sub',   data: unrate,   fmt: fmtPct },
+  ];
+
+  // CPI & PCE 要算 YoY，需要抓 13 筆
+  const [cpiYoY, pceYoY] = await Promise.all([
+    fetchFREDYoY('CPIAUCSL'), fetchFREDYoY('PCEPI'),
+  ]);
+
+  const fedEl = document.getElementById('m-fedfunds');
+  const fedSub = document.getElementById('m-fedfunds-sub');
+  const fedTarget = document.getElementById('m-fedfunds-target');
+  if (fedfunds) {
+    fedEl.textContent = fmtPct(fedfunds.value);
+    const chg = fedfunds.prev !== null ? fedfunds.value - fedfunds.prev : null;
+    fedSub.textContent = '月均：' + fedfunds.date + (chg !== null ? `　${chg >= 0 ? '+' : ''}${chg.toFixed(2)}%` : '');
+    fedSub.style.color = '#7a8499';
+  } else { fedEl.textContent = '—'; fedSub.textContent = '取得失敗'; }
+  if (fedTarget && fedTarL && fedTarU) {
+    fedTarget.textContent = `目標區間：${fmtPct(fedTarL.value)} – ${fmtPct(fedTarU.value)}`;
+  } else if (fedTarget) { fedTarget.textContent = '目標區間：—'; }
+
+  const cpiEl = document.getElementById('m-cpi');
+  const cpiSub = document.getElementById('m-cpi-sub');
+  if (cpiYoY) {
+    cpiEl.textContent = fmtPct(cpiYoY.yoy);
+    cpiSub.textContent = cpiYoY.date + `　前期 ${fmtPct(cpiYoY.prevYoY)}`;
+    cpiEl.style.color = cpiYoY.yoy > 3 ? '#f56565' : cpiYoY.yoy > 2 ? '#f59e0b' : '#3dd68c';
+    cpiSub.style.color = '#7a8499';
+  } else { cpiEl.textContent = '—'; cpiSub.textContent = '取得失敗'; }
+
+  const pceEl = document.getElementById('m-pce');
+  const pceSub = document.getElementById('m-pce-sub');
+  if (pceYoY) {
+    pceEl.textContent = fmtPct(pceYoY.yoy);
+    pceSub.textContent = pceYoY.date + `　前期 ${fmtPct(pceYoY.prevYoY)}`;
+    pceEl.style.color = pceYoY.yoy > 3 ? '#f56565' : pceYoY.yoy > 2 ? '#f59e0b' : '#3dd68c';
+    pceSub.style.color = '#7a8499';
+  } else { pceEl.textContent = '—'; pceSub.textContent = '取得失敗'; }
+
+  const unEl = document.getElementById('m-unrate');
+  const unSub = document.getElementById('m-unrate-sub');
+  if (unrate) {
+    unEl.textContent = fmtPct(unrate.value);
+    const chg = unrate.prev !== null ? unrate.value - unrate.prev : null;
+    unSub.textContent = unrate.date + (chg !== null ? `　${chg >= 0 ? '+' : ''}${chg.toFixed(1)}%` : '');
+    unEl.style.color = unrate.value > 5 ? '#f56565' : unrate.value > 4 ? '#f59e0b' : '#3dd68c';
+    unSub.style.color = '#7a8499';
+  } else { unEl.textContent = '—'; unSub.textContent = '取得失敗'; }
+
+  const upd = document.getElementById('macro-last-update');
+  if (upd) upd.textContent = '更新：' + new Date().toLocaleTimeString('zh-TW');
+  if (btn) btn.textContent = '重新整理';
+
+  // 載入 FactSet
+  const factset = await fetchFactSet();
+  renderFactSet(factset);
+
+  // 生成規則式評析
+  renderMacroAnalysis({ vix, spy, qqq, dxy, usdtwd, gold, oil, tnx, irx, fedfunds, cpiYoY, pceYoY, unrate, factset });
+}
+
+async function fetchFREDYoY(series) {
+  try {
+    const url = `${PROXY}/fred?series_id=${series}&api_key=${FRED_KEY}&sort_order=desc&limit=14&file_type=json`;
+    const r = await fetch(url);
+    const j = await r.json();
+    const obs = j?.observations?.filter(o => o.value !== '.').map(o => ({ date: o.date, value: parseFloat(o.value) }));
+    if (!obs || obs.length < 13) return null;
+    const latest = obs[0], prev = obs[1], yearAgo = obs[12], yearAgoPrev = obs[13] ?? obs[12];
+    const yoy = (latest.value - yearAgo.value) / yearAgo.value * 100;
+    const prevYoY = (prev.value - yearAgoPrev.value) / yearAgoPrev.value * 100;
+    return { yoy, prevYoY, date: latest.date };
+  } catch { return null; }
+}
+
+function renderMacroAnalysis({ vix, spy, qqq, dxy, usdtwd, gold, oil, tnx, irx, fedfunds, cpiYoY, pceYoY, unrate, factset }) {
+
+  // ── 前置計算 ──────────────────────────────────────────────
+  const vixP   = vix?.price;
+  const vixChg = vixP && vix.prev ? vixP - vix.prev : null;
+  const spyPct = spy?.price && spy.prev ? (spy.price - spy.prev) / spy.prev * 100 : null;
+  const qqqPct = qqq?.price && qqq.prev ? (qqq.price - qqq.prev) / qqq.prev * 100 : null;
+  const dxyChg = dxy?.price && dxy.prev ? dxy.price - dxy.prev : null;
+  const twdChg = usdtwd?.price && usdtwd.prev ? usdtwd.price - usdtwd.prev : null;
+  const goldPct = gold?.price && gold.prev ? (gold.price - gold.prev) / gold.prev * 100 : null;
+  const oilPct  = oil?.price  && oil.prev  ? (oil.price  - oil.prev)  / oil.prev  * 100 : null;
+  const spread  = tnx?.price && irx?.price ? tnx.price - irx.price : null;
+  const tnxChg  = tnx?.price && tnx.prev   ? tnx.price - tnx.prev   : null;
+
+  // ── 整體情緒（VIX + 美股漲跌綜合判斷）──────────────────────
+  let sentimentLabel = '中性', sentimentColor = '#f59e0b';
+  if (vixP) {
+    if (vixP < 15 && (spyPct ?? 0) >= 0)      { sentimentLabel = '風險偏好強烈'; sentimentColor = '#3dd68c'; }
+    else if (vixP < 20)                         { sentimentLabel = '市場平穩';     sentimentColor = '#3dd68c'; }
+    else if (vixP < 25)                         { sentimentLabel = '波動升溫';     sentimentColor = '#f59e0b'; }
+    else if (vixP < 35)                         { sentimentLabel = '恐慌情緒升溫'; sentimentColor = '#f59e0b'; }
+    else                                         { sentimentLabel = '市場高度恐慌'; sentimentColor = '#f56565'; }
+  }
+  const dot = document.getElementById('macro-sentiment-dot');
+  const lbl = document.getElementById('macro-sentiment-label');
+  if (dot) dot.style.background = sentimentColor;
+  if (lbl) { lbl.textContent = sentimentLabel; lbl.style.color = sentimentColor; }
+
+  // ── 各指標評析（支援多點 bullets）──────────────────────────
+  const items = [];
+
+  // 美股情緒
+  if (vixP !== null) {
+    const bullets = [];
+    bullets.push(vixP < 15 ? '極低波動，市場極度樂觀，風險偏好資產受益' :
+                 vixP < 20 ? '波動正常，整體情緒穩健' :
+                 vixP < 30 ? '恐慌指數升溫，市場對不確定性敏感度提高' :
+                             '高度恐慌，建議檢視槓桿部位與現金覆蓋率');
+    if (vixChg !== null) bullets.push(vixChg > 2 ? `單日急升 +${vixChg.toFixed(1)}，恐慌情緒快速升溫，注意隔日波動` :
+                                      vixChg < -2 ? `單日急降 ${vixChg.toFixed(1)}，恐慌消退，有利風險資產` : '');
+    if (spyPct !== null) bullets.push(`S&P 500 ${spyPct >= 0 ? '上漲' : '下跌'} ${Math.abs(spyPct).toFixed(2)}%` +
+      (qqqPct !== null ? `，NASDAQ ${qqqPct >= 0 ? '上漲' : '下跌'} ${Math.abs(qqqPct).toFixed(2)}%` : '') +
+      (spyPct > 0 && qqqPct > spyPct ? '，科技股領漲，動能偏強' :
+       spyPct < 0 && qqqPct < spyPct ? '，科技股跌幅擴大，成長股承壓' : ''));
+    items.push({ label: '美股 / VIX', value: `${vixP.toFixed(1)}`, bullets: bullets.filter(Boolean), valColor: vixP < 20 ? '#3dd68c' : vixP < 30 ? '#f59e0b' : '#f56565' });
+  }
+
+  // 殖利率曲線
+  if (spread !== null) {
+    const bullets = [];
+    const spreadCol = spread > 0.5 ? '#3dd68c' : spread > 0 ? '#f59e0b' : '#f56565';
+    bullets.push(spread > 0.5 ? `10Y-2Y 利差 +${spread.toFixed(2)}%，曲線正斜率，景氣擴張訊號` :
+                 spread > 0   ? `10Y-2Y 利差 +${spread.toFixed(2)}%，曲線趨平，需持續觀察` :
+                                `10Y-2Y 利差 ${spread.toFixed(2)}%，殖利率曲線倒掛，歷史上衰退前兆`);
+    if (tnxChg !== null) bullets.push(tnxChg > 0.05 ? `10年殖利率走升 +${tnxChg.toFixed(2)}%，市場降息預期降溫或通膨預期升溫` :
+                                      tnxChg < -0.05 ? `10年殖利率走低 ${tnxChg.toFixed(2)}%，市場加大降息押注或避險買盤入場` : '');
+    bullets.push(tnx?.price ? (tnx.price > 4.5 ? '長端利率偏高，對股票估值形成壓力，尤其成長股' :
+                               tnx.price > 3.5 ? '長端利率溫和，對股市影響中性' : '長端利率偏低，有利股票估值擴張') : '');
+    items.push({ label: '美債殖利率', value: spread > 0 ? `+${spread.toFixed(2)}%` : `${spread.toFixed(2)}%`, bullets: bullets.filter(Boolean), valColor: spreadCol });
+  }
+
+  // 美元 + 台幣（合併）
+  if (dxy?.price || usdtwd?.price) {
+    const bullets = [];
+    if (dxyChg !== null) bullets.push(dxyChg > 0.3 ? `美元指數走強 +${dxyChg.toFixed(2)}，新興市場資金壓力增，台幣、黃金承壓` :
+                                      dxyChg < -0.3 ? `美元指數走弱 ${dxyChg.toFixed(2)}，有利新興市場與黃金，台幣升值壓力減輕` :
+                                                      '美元指數小幅波動，匯率市場相對穩定');
+    if (twdChg !== null) bullets.push(twdChg > 0.2 ? `台幣走貶 +${twdChg.toFixed(3)}，你的美股部位帳面台幣價值提升，但換回時有匯損壓力` :
+                                      twdChg < -0.2 ? `台幣走升 ${Math.abs(twdChg).toFixed(3)}，美股部位換回台幣價值縮水，留意匯率風險` :
+                                                      '台幣匯率穩定，匯率對部位影響有限');
+    if (dxy?.price && usdtwd?.price) {
+      const dxyUp = (dxyChg ?? 0) > 0.1;
+      const twdWeak = (twdChg ?? 0) > 0.1;
+      if (dxyUp && twdWeak) bullets.push('美元走強與台幣走貶方向一致，外資賣台股壓力可能升溫');
+      else if (!dxyUp && !twdWeak) bullets.push('美元走弱、台幣走強，外資回流台股意願較高');
+    }
+    items.push({ label: '美元 / 台幣', value: usdtwd?.price ? usdtwd.price.toFixed(3) : dxy?.price?.toFixed(2), bullets: bullets.filter(Boolean) });
+  }
+
+  // 黃金 + 原油（合併）
+  if (gold?.price || oil?.price) {
+    const bullets = [];
+    if (goldPct !== null) {
+      bullets.push(goldPct > 1 ? `黃金強勢 +${goldPct.toFixed(2)}%，避險需求升溫或實質利率走低` :
+                   goldPct < -1 ? `黃金走弱 ${goldPct.toFixed(2)}%，風險偏好回升或美元走強壓抑` :
+                                  '黃金小幅波動，市場觀望情緒濃');
+      if (goldPct > 0.5 && (dxyChg ?? 0) < -0.2) bullets.push('黃金漲 + 美元跌同步出現，避險情緒主導，非美貨幣受益');
+      else if (goldPct > 0.5 && vixP && vixP > 25) bullets.push('金價與 VIX 同步走高，市場處於典型避險模式');
+    }
+    if (oilPct !== null) bullets.push(oilPct > 2 ? `原油上漲 +${oilPct.toFixed(2)}%，能源通膨壓力升溫，留意 CPI 走向` :
+                                      oilPct < -2 ? `原油下跌 ${oilPct.toFixed(2)}%，需求疑慮或供應回升，有助通膨降溫` :
+                                                    '油價溫和，對通膨影響有限');
+    items.push({ label: '黃金 / 原油', value: gold?.price ? `$${Math.round(gold.price)}` : `$${oil?.price?.toFixed(1)}`, bullets: bullets.filter(Boolean) });
+  }
+
+  // 總體經濟
+  if (cpiYoY || pceYoY || unrate || fedfunds) {
+    const bullets = [];
+    if (cpiYoY) bullets.push(cpiYoY.yoy > 3 ? `CPI YoY ${fmtPct(cpiYoY.yoy)}，通膨仍高，Fed 降息空間受限` :
+                              cpiYoY.yoy > 2 ? `CPI YoY ${fmtPct(cpiYoY.yoy)}，通膨接近目標，政策轉向窗口開啟` :
+                                               `CPI YoY ${fmtPct(cpiYoY.yoy)}，通膨低於目標，Fed 有寬鬆空間`);
+    if (pceYoY) bullets.push(pceYoY.yoy > 2.5 ? `核心 PCE ${fmtPct(pceYoY.yoy)}，Fed 最重視的通膨指標仍偏高` :
+                              `核心 PCE ${fmtPct(pceYoY.yoy)}，通膨壓力緩解`);
+    if (cpiYoY && pceYoY && cpiYoY.yoy > cpiYoY.prevYoY && pceYoY.yoy > pceYoY.prevYoY)
+      bullets.push('CPI 與 PCE 雙雙回升，通膨再加速風險需警惕');
+    if (unrate) bullets.push(unrate.value > 5 ? `失業率 ${fmtPct(unrate.value)}，就業市場轉弱，消費力道可能受壓` :
+                              unrate.value > 4.2 ? `失業率 ${fmtPct(unrate.value)}，就業市場降溫，Fed 兼顧就業的壓力上升` :
+                                                   `失業率 ${fmtPct(unrate.value)}，就業穩健，支撐消費與企業盈利`);
+    if (cpiYoY && unrate) {
+      if (cpiYoY.yoy < 2.5 && unrate.value < 4.5) bullets.push('通膨低 + 就業穩，Fed 軟著陸情境機率上升，有利風險資產');
+      else if (cpiYoY.yoy > 3 && unrate.value > 4.5) bullets.push('通膨高 + 失業升，停滯性通膨風險，對股市最不利');
+    }
+    items.push({ label: '總體經濟', value: cpiYoY ? fmtPct(cpiYoY.yoy) : '—', bullets: bullets.filter(Boolean) });
+  }
+
+  // S&P 500 財報季（FactSet）
+  if (factset && !factset.error) {
+    const m = factset.metrics;
+    const bullets = [];
+    if (m.reportingPct && m.epsSurprisePct) {
+      bullets.push(`${factset.quarter || '本季'} 已有 ${m.reportingPct}% 企業公布財報，其中 ${m.epsSurprisePct}% EPS 優於預期` +
+        (m.epsSurprisePct >= 78 ? '（高於 5 年均 78%，財報季表現強勁）' : m.epsSurprisePct >= 70 ? '（接近歷史均值）' : '（低於歷史均值，盈利動能待觀察）'));
+    }
+    if (m.epsSurpiseMag) {
+      bullets.push(`EPS 驚喜幅度 +${m.epsSurpiseMag}%` +
+        (m.epsSurpiseMag > 7 ? `（高於 5 年均 7%），企業獲利超出市場預期程度顯著` : '（接近歷史均值）'));
+    }
+    if (m.earningsGrowth) {
+      bullets.push(`Blended 盈餘成長率 ${m.earningsGrowth}% YoY` +
+        (m.earningsGrowth > 15 ? '，高速成長支撐估值，但需留意是否已計入股價' :
+         m.earningsGrowth > 5  ? '，溫和成長，基本面健全' : '，成長動能偏弱'));
+    }
+    if (m.revenueGrowth) {
+      bullets.push(`營收成長率 ${m.revenueGrowth}% YoY` +
+        (m.earningsGrowth && m.revenueGrowth && m.earningsGrowth > m.revenueGrowth * 2
+          ? '，盈餘成長遠超營收，利潤率擴張或一次性因素，需確認可持續性'
+          : '，營收與盈餘成長方向一致，基本面較紮實'));
+    }
+    if (m.forwardPE) {
+      const vsAvg = m.pe5YrAvg ? (m.forwardPE - m.pe5YrAvg).toFixed(1) : null;
+      bullets.push(`Forward P/E ${m.forwardPE}x` +
+        (vsAvg !== null ? `（高於 5 年均 ${m.pe5YrAvg}x 約 ${vsAvg} 倍），` : '，') +
+        (m.forwardPE > (m.pe5YrAvg || 20) ? '估值偏貴，需要更強盈利成長支撐' : '估值合理，上行空間相對健康'));
+    }
+    if (m.q3GrowthEst || m.cyGrowthEst) {
+      const parts = [];
+      if (m.q3GrowthEst) parts.push(`Q3 預估 +${m.q3GrowthEst}%`);
+      if (m.cyGrowthEst) parts.push(`全年預估 +${m.cyGrowthEst}%`);
+      bullets.push(`前瞻盈利：${parts.join('、')}，市場對後續盈利展望` +
+        ((m.q3GrowthEst || 0) > 10 ? '樂觀' : '謹慎'));
+    }
+    const egLabel = m.earningsGrowth ? `${m.earningsGrowth}% YoY` : '—';
+    items.push({ label: 'S&P 500 財報季', value: egLabel, bullets: bullets.filter(Boolean), valColor: m.earningsGrowth > 10 ? '#3dd68c' : m.earningsGrowth > 0 ? '#f59e0b' : '#f56565' });
+  }
+
+  // ── 渲染各項目 ──────────────────────────────────────────────
+  const list = document.getElementById('macro-analysis-list');
+  if (!list) return;
+  list.innerHTML = items.map((item, i) => {
+    const isLast = i === items.length - 1;
+    return `<div style="padding:10px 0;${isLast ? '' : 'border-bottom:1px solid #1e2230'}">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+        <div style="font-size:11px;color:#5a6780;font-weight:600;letter-spacing:.04em;text-transform:uppercase">${item.label}</div>
+        <div style="font-size:13px;font-weight:700;color:${item.valColor || '#e2e8f0'}">${item.value}</div>
+      </div>
+      <ul style="margin:0;padding-left:14px;display:flex;flex-direction:column;gap:4px">
+        ${item.bullets.map(b => `<li style="font-size:12px;color:#9aa3b2;line-height:1.5">${b}</li>`).join('')}
+      </ul>
+    </div>`;
+  }).join('');
+
+  // ── 本日重點總結 ──────────────────────────────────────────────
+  const summaryPoints = [];
+  if (vixP) summaryPoints.push(vixP < 20 ? '市場情緒穩健' : vixP < 30 ? '波動升溫需謹慎' : '恐慌模式，控制槓桿');
+  if (spread !== null) summaryPoints.push(spread < 0 ? '殖利率曲線倒掛持續' : spread < 0.3 ? '曲線趨平，景氣觀察期' : '曲線正斜率，景氣偏多');
+  if (dxyChg !== null && Math.abs(dxyChg) > 0.2) summaryPoints.push(dxyChg > 0 ? '美元走強壓抑新興市場' : '美元走弱有利黃金與台股');
+  if (cpiYoY) summaryPoints.push(cpiYoY.yoy > 3 ? '通膨偏高限制 Fed 空間' : cpiYoY.yoy > 2 ? '通膨接近目標' : '通膨受控，降息條件具備');
+  if (factset?.metrics?.epsSurprisePct) {
+    const eps = factset.metrics.epsSurprisePct;
+    summaryPoints.push(eps >= 78 ? `財報超預期強（${eps}% beat）` : eps >= 70 ? `財報表現接近均值（${eps}% beat）` : `財報表現偏弱（${eps}% beat）`);
+  }
+  if (factset?.metrics?.forwardPE && factset?.metrics?.pe5YrAvg) {
+    summaryPoints.push(factset.metrics.forwardPE > factset.metrics.pe5YrAvg ? `估值偏高（P/E ${factset.metrics.forwardPE}x）` : `估值合理（P/E ${factset.metrics.forwardPE}x）`);
+  }
+
+  const summaryEl = document.getElementById('macro-summary');
+  if (summaryEl && summaryPoints.length) {
+    summaryEl.innerHTML = summaryPoints.map(p => `<span style="display:inline-block;background:#1e2230;border:1px solid #2e3342;border-radius:4px;padding:3px 8px;font-size:11px;color:#9aa3b2;margin:2px 3px 2px 0">${p}</span>`).join('');
+    summaryEl.style.display = 'block';
+  }
+}
+
+async function fetchFactSet() {
+  try {
+    const r = await fetch(`${PROXY}/factset`);
+    return await r.json();
+  } catch { return null; }
+}
+
+function renderFactSet(d) {
+  if (!d || d.error) return;
+  const m = d.metrics;
+
+  const dateEl = document.getElementById('factset-date');
+  if (dateEl) dateEl.textContent = d.date + (d.quarter ? `（${d.quarter}）` : '');
+
+  const set = (id, val, sub, color) => {
+    const el = document.getElementById(id);
+    if (el) { el.textContent = val; if (color) el.style.color = color; }
+    const subEl = document.getElementById(id + '-sub');
+    if (subEl && sub) subEl.textContent = sub;
+  };
+
+  if (m.epsSurprisePct) {
+    const col = m.epsSurprisePct >= 78 ? '#3dd68c' : m.epsSurprisePct >= 70 ? '#f59e0b' : '#f56565';
+    set('fs-eps-beat', m.epsSurprisePct + '%', `5年均 78%`, col);
+    if (m.epsSurpiseMag) {
+      const magEl = document.getElementById('fs-eps-beat-sub');
+      if (magEl) magEl.textContent = `幅度 +${m.epsSurpiseMag}%（均 7%）`;
+    }
+  }
+  if (m.earningsGrowth) {
+    const col = m.earningsGrowth >= 10 ? '#3dd68c' : m.earningsGrowth >= 0 ? '#f59e0b' : '#f56565';
+    set('fs-eg', m.earningsGrowth + '%', `YoY Blended`, col);
+  }
+  if (m.revenueGrowth) {
+    const col = m.revenueGrowth >= 5 ? '#3dd68c' : m.revenueGrowth >= 0 ? '#f59e0b' : '#f56565';
+    set('fs-rg', m.revenueGrowth + '%', `YoY Blended`, col);
+  }
+  if (m.forwardPE) {
+    const col = m.forwardPE > (m.pe5YrAvg || 20) ? '#f59e0b' : '#3dd68c';
+    const sub = m.pe5YrAvg ? `5年均 ${m.pe5YrAvg}｜10年均 ${m.pe10YrAvg}` : '—';
+    set('fs-pe', m.forwardPE.toFixed(1) + 'x', sub, col);
+  }
+  if (m.reportingPct) set('fs-reporting', m.reportingPct + '%', '佔 S&P 500');
+  if (m.revSurprisePct) {
+    const col = m.revSurprisePct >= 70 ? '#3dd68c' : '#f59e0b';
+    set('fs-rev-beat', m.revSurprisePct + '%', `5年均 70%`, col);
+  }
+  if (m.q3GrowthEst) set('fs-q3', m.q3GrowthEst + '%', 'YoY 預估', '#9aa3b2');
+  if (m.cyGrowthEst) set('fs-cy', m.cyGrowthEst + '%', 'YoY 預估', '#9aa3b2');
+}
+
+function refreshMacro() { loadMacroData(); }
+
+function initMacro() {
+  if (!macroInitialized) {
+    macroInitialized = true;
+    loadMacroData();
+  }
+}
 </script>
 </body>
 </html>
