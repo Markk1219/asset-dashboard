@@ -2652,11 +2652,20 @@ function calcConcentration() {
 
 function calcDrawdown() {
   const history = getMergedHistory();
-  if (!history.length) return null;
-  const peakVal = Math.max(...history.map(r => r[4]));
+  if (!history.length) return { dd30: null, ddAll: null };
   const current = RAW.summary.totalAssets;
-  if (!peakVal || !current) return null;
-  return (current - peakVal) / peakVal * 100;
+  if (!current) return { dd30: null, ddAll: null };
+
+  const peakAll = Math.max(...history.map(r => r[4]));
+  const ddAll = peakAll ? (current - peakAll) / peakAll * 100 : null;
+
+  const cutoff = new Date();
+  cutoff.setDate(cutoff.getDate() - 30);
+  const hist30 = history.filter(r => new Date(r[0].replace(/\//g, '-')) >= cutoff);
+  const peak30 = hist30.length ? Math.max(...hist30.map(r => r[4])) : null;
+  const dd30 = peak30 ? (current - peak30) / peak30 * 100 : null;
+
+  return { dd30, ddAll };
 }
 
 function renderMonitor() {
@@ -2673,7 +2682,7 @@ function renderMonitor() {
 
   // 第二行：持倉集中度 + 回撤
   const conc = calcConcentration();
-  const dd = calcDrawdown();
+  const { dd30, ddAll } = calcDrawdown();
   let concValue, concCls;
   if (!conc.length) {
     concValue = '分散良好'; concCls = 'ok';
@@ -2683,11 +2692,18 @@ function renderMonitor() {
     concValue = list.map(h => `${h.code} (${h.pct.toFixed(1)}%)`).join('、');
     concCls = hasDanger ? 'danger' : 'warn';
   }
-  const ddValue = dd === null ? '—' : dd >= -0.5 ? '歷史新高' : dd.toFixed(1) + '%';
-  const ddCls = dd === null ? '' : dd >= -0.5 ? 'ok' : dd < -15 ? 'danger' : dd < -10 ? 'warn' : 'ok';
+
+  const fmtDd = v => v === null ? '—' : v >= -0.5 ? '新高' : v.toFixed(1) + '%';
+  const clsDd = v => v === null ? '' : v >= -0.5 ? 'ok' : v < -15 ? 'danger' : v < -10 ? 'warn' : 'ok';
+  const dd30Value = fmtDd(dd30);
+  const ddAllValue = fmtDd(ddAll);
+  const dd30Cls = clsDd(dd30);
+  const ddAllCls = clsDd(ddAll);
+
   const row2 = [
-    { label: '持倉集中度', value: concValue, cls: concCls },
-    { label: '淨值回撤',   value: ddValue,   cls: ddCls },
+    { label: '持倉集中度',    value: concValue,  cls: concCls },
+    { label: '30日回撤',      value: dd30Value,  cls: dd30Cls },
+    { label: '歷史最大回撤',  value: ddAllValue, cls: ddAllCls },
   ];
 
   const renderRow = (items, isLast) => items.map((i, idx) => {
