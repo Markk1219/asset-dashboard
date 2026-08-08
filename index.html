@@ -4196,7 +4196,7 @@ function showPage(page) {
     document.getElementById('page-' + p).style.display = page === p ? '' : 'none';
   });
   document.querySelectorAll('.nav-item').forEach((el, i) => {
-    el.classList.toggle('active', ['overview','debt','mortgage','returns','macro'][i] === page);
+    el.classList.toggle('active', ['overview','debt','macro','mortgage','returns'][i] === page);
   });
   if (page === 'debt') renderDebtPage();
   if (page === 'macro') initMacro();
