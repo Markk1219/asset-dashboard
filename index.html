@@ -229,7 +229,6 @@
   <div class="sidebar" id="sidebar">
     <div class="sidebar-logo" onclick="toggleSidebar()" style="cursor:pointer" title="收合側欄">
       <span>📊 <span style="color:#4a9eff">財務</span>儀表板</span>
-      <button class="sidebar-toggle" id="sidebar-toggle-btn" title="收合側欄" style="pointer-events:none">◀</button>
     </div>
     <div class="sidebar-expand" onclick="toggleSidebar()">
       <div class="sidebar-expand-icon">📊</div>
@@ -2290,11 +2289,8 @@ applyPrivacy(false);
 
 function toggleSidebar() {
   const sb = document.getElementById('sidebar');
-  const btn = document.getElementById('sidebar-toggle-btn');
   sb.classList.toggle('collapsed');
-  const isCollapsed = sb.classList.contains('collapsed');
-  btn.textContent = isCollapsed ? '▶' : '◀';
-  localStorage.setItem('sidebar_collapsed', isCollapsed ? '1' : '0');
+  localStorage.setItem('sidebar_collapsed', sb.classList.contains('collapsed') ? '1' : '0');
 }
 
 function copyPhoneLink() {
@@ -4415,7 +4411,6 @@ function renderDebtPage() {
 // 初始化：先從 localStorage 載入，再嘗試從雲端同步
 if (localStorage.getItem('sidebar_collapsed') === '1') {
   document.getElementById('sidebar').classList.add('collapsed');
-  document.getElementById('sidebar-toggle-btn').textContent = '▶';
 }
 loadLedger();
 loadDebts();
