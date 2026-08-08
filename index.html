@@ -227,20 +227,20 @@
 
 <div class="sidebar-wrap">
   <div class="sidebar" id="sidebar">
-    <div class="sidebar-logo">
-      <span>💰 <span style="color:#4a9eff">個人</span>理財</span>
-      <button class="sidebar-toggle" id="sidebar-toggle-btn" onclick="toggleSidebar()" title="收合側欄">◀</button>
+    <div class="sidebar-logo" onclick="toggleSidebar()" style="cursor:pointer" title="收合側欄">
+      <span>📊 <span style="color:#4a9eff">財務</span>儀表板</span>
+      <button class="sidebar-toggle" id="sidebar-toggle-btn" title="收合側欄" style="pointer-events:none">◀</button>
     </div>
     <div class="sidebar-expand" onclick="toggleSidebar()">
-      <div class="sidebar-expand-icon">💰</div>
+      <div class="sidebar-expand-icon">📊</div>
       <span class="expand-tooltip">展開側欄</span>
     </div>
     <nav class="sidebar-nav">
       <div class="nav-item active" onclick="showPage('overview')"><span class="nav-icon">📊</span><span class="nav-label">資產總覽</span></div>
       <div class="nav-item" onclick="showPage('debt')"><span class="nav-icon">💳</span><span class="nav-label">負債管理</span></div>
+      <div class="nav-item" onclick="showPage('macro')"><span class="nav-icon">🌐</span><span class="nav-label">總經監控</span></div>
       <div class="nav-item" onclick="showPage('mortgage')"><span class="nav-icon">🏠</span><span class="nav-label">房貸試算</span></div>
       <div class="nav-item" onclick="showPage('returns')"><span class="nav-icon">📈</span><span class="nav-label">投資試算</span></div>
-      <div class="nav-item" onclick="showPage('macro')"><span class="nav-icon">🌐</span><span class="nav-label">總經監控</span></div>
     </nav>
     <div class="sidebar-footer">
       <div class="sidebar-footer-text">
