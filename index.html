@@ -1153,11 +1153,23 @@
         <div style="font-size:11px;color:#3a4260">FRED 聖路易聯準會｜月頻</div>
       </div>
       <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px">
-        <div class="card"><div class="card-label">聯準會利率</div><div class="card-value" id="m-fedfunds" style="font-size:22px">—</div><div class="card-sub" id="m-fedfunds-target" style="font-size:12px;color:#4a9eff">目標區間：—</div><div class="card-sub" id="m-fedfunds-sub" style="font-size:11px">—</div></div>
+        <div class="card"><div class="card-label">聯準會利率</div><div class="card-value" id="m-fedfunds" style="font-size:22px">—</div><div class="card-sub" id="m-fedfunds-target" style="font-size:12px;color:#4a9eff">目標區間：—</div><div class="card-sub" id="m-fedfunds-dec" style="font-size:11px;color:#9aa3b2">12月期貨隱含：—</div><div class="card-sub" id="m-fedfunds-sub" style="font-size:11px">—</div></div>
         <div class="card"><div class="card-label">CPI YoY</div><div class="card-value" id="m-cpi" style="font-size:22px">—</div><div class="card-sub" id="m-cpi-sub" style="font-size:12px">—</div></div>
         <div class="card"><div class="card-label">核心 PCE YoY</div><div class="card-value" id="m-pce" style="font-size:22px">—</div><div class="card-sub" id="m-pce-sub" style="font-size:12px">—</div></div>
         <div class="card"><div class="card-label">失業率</div><div class="card-value" id="m-unrate" style="font-size:22px">—</div><div class="card-sub" id="m-unrate-sub" style="font-size:12px">—</div></div>
       </div>
+
+      <!-- 信用市場 -->
+      <div style="display:flex;align-items:baseline;gap:8px;margin-bottom:8px;margin-top:16px">
+        <div style="font-size:11px;font-weight:600;color:#5a6780;letter-spacing:.08em;text-transform:uppercase">信用市場</div>
+        <div style="font-size:11px;color:#3a4260">FRED ICE BofA｜每日</div>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px">
+        <div class="card"><div class="card-label">HY 信用利差</div><div class="card-value" id="m-hy-spread" style="font-size:22px">—</div><div class="card-sub" id="m-hy-spread-sub" style="font-size:11px">—</div></div>
+        <div class="card"><div class="card-label">IG 信用利差</div><div class="card-value" id="m-ig-spread" style="font-size:22px">—</div><div class="card-sub" id="m-ig-spread-sub" style="font-size:11px">—</div></div>
+        <div class="card" style="grid-column:span 2"><div class="card-label" style="margin-bottom:6px">利差解讀</div><div id="m-spread-interp" style="font-size:12px;color:#9aa3b2;line-height:1.6">—</div></div>
+      </div>
+
 
       <!-- FactSet Earnings Insight -->
       <div style="display:flex;align-items:baseline;gap:8px;margin-bottom:8px;margin-top:16px">
@@ -4504,9 +4516,15 @@ async function loadMacroData() {
     fetchYF('GC=F'), fetchYF('CL=F'), fetchYF('^TNX'), fetchYF('^IRX'),
   ]);
 
-  const [fedfunds, cpi, pce, unrate, fedTarU, fedTarL] = await Promise.all([
+  const [fedfunds, cpi, pce, unrate, fedTarU, fedTarL, hySpread, igSpread] = await Promise.all([
     fetchFRED('FEDFUNDS'), fetchFRED('CPIAUCSL'), fetchFRED('PCEPI'), fetchFRED('UNRATE'),
     fetchFRED('DFEDTARU'), fetchFRED('DFEDTARL'),
+    fetchFRED('BAMLH0A0HYM2'), fetchFRED('BAMLC0A0CM'),
+  ]);
+
+  // Fed Funds Futures（ZQ）— 12月合約隱含年底利率
+  const [zqSep, zqDec] = await Promise.all([
+    fetchYF('ZQU26.CBT'), fetchYF('ZQZ26.CBT'),
   ]);
 
   // 美股
@@ -4601,12 +4619,27 @@ async function loadMacroData() {
   if (upd) upd.textContent = '更新：' + new Date().toLocaleTimeString('zh-TW');
   if (btn) btn.textContent = '重新整理';
 
+  // 信用利差
+  renderCreditSpreads(hySpread, igSpread);
+
+  // 12月期貨隱含利率 → 顯示在聯準會利率卡片
+  const currentRate = fedTarU && fedTarL ? (fedTarU.value + fedTarL.value) / 2 : (fedfunds?.value ?? 4.375);
+  const decEl = document.getElementById('m-fedfunds-dec');
+  if (decEl && zqDec?.price) {
+    const impliedDec = 100 - zqDec.price;
+    const diff = impliedDec - currentRate;
+    const dir = diff > 0.1 ? '↑升息方向' : diff < -0.1 ? '↓降息方向' : '→持平';
+    const col = diff > 0.1 ? '#f56565' : diff < -0.1 ? '#3dd68c' : '#f59e0b';
+    decEl.textContent = `12月期貨隱含：${impliedDec.toFixed(2)}%　${dir}`;
+    decEl.style.color = col;
+  }
+
   // 載入 FactSet
   const factset = await fetchFactSet();
   renderFactSet(factset);
 
   // 生成規則式評析
-  renderMacroAnalysis({ vix, spy, qqq, dxy, usdtwd, gold, oil, tnx, irx, fedfunds, cpiYoY, pceYoY, unrate, factset });
+  renderMacroAnalysis({ vix, spy, qqq, dxy, usdtwd, gold, oil, tnx, irx, fedfunds, cpiYoY, pceYoY, unrate, factset, hySpread, zqSep, zqDec, currentRate });
 }
 
 async function fetchFREDYoY(series) {
@@ -4623,7 +4656,7 @@ async function fetchFREDYoY(series) {
   } catch { return null; }
 }
 
-function renderMacroAnalysis({ vix, spy, qqq, dxy, usdtwd, gold, oil, tnx, irx, fedfunds, cpiYoY, pceYoY, unrate, factset }) {
+function renderMacroAnalysis({ vix, spy, qqq, dxy, usdtwd, gold, oil, tnx, irx, fedfunds, cpiYoY, pceYoY, unrate, factset, hySpread, zqSep, zqDec, currentRate }) {
 
   // ── 前置計算 ──────────────────────────────────────────────
   const vixP   = vix?.price;
@@ -4738,6 +4771,48 @@ function renderMacroAnalysis({ vix, spy, qqq, dxy, usdtwd, gold, oil, tnx, irx, 
     items.push({ label: '總體經濟', value: cpiYoY ? fmtPct(cpiYoY.yoy) : '—', bullets: bullets.filter(Boolean) });
   }
 
+  // 信用利差分析
+  if (hySpread) {
+    const v = hySpread.value;
+    const bullets = [];
+    bullets.push(v < 3 ? `HY 利差 ${v.toFixed(2)}%，處於歷史偏低水位，信用市場樂觀，有利風險資產` :
+                 v < 4 ? `HY 利差 ${v.toFixed(2)}%，位於正常區間，市場對違約風險評估溫和` :
+                 v < 6 ? `HY 利差 ${v.toFixed(2)}%，利差走闊，市場開始對信用風險重新定價` :
+                         `HY 利差 ${v.toFixed(2)}%，顯著擴大，信用緊縮訊號，類衰退環境`);
+    if (spread !== null && v > 4) bullets.push('HY 利差走闊 + 殖利率曲線趨平，雙重信號指向信用市場承壓');
+    if (v < 3.5 && (spyPct ?? 0) > 0) bullets.push('信用利差窄 + 股市上漲，風險偏好環境確立，有利 Sell Put 策略');
+    const col = v < 3 ? '#3dd68c' : v < 5 ? '#f59e0b' : v < 8 ? '#f56565' : '#b91c1c';
+    items.push({ label: '信用市場', value: v.toFixed(2) + '%', bullets, valColor: col });
+  }
+
+  // FOMC FedWatch 分析
+  if (zqSep?.price || zqDec?.price) {
+    const bullets = [];
+    const impliedSep = zqSep?.price ? 100 - zqSep.price : null;
+    const impliedDec = zqDec?.price ? 100 - zqDec.price : null;
+    if (impliedSep !== null && currentRate) {
+      const diffSep = impliedSep - currentRate;
+      const cutsSep = Math.round(-diffSep / 0.25);
+      bullets.push(cutsSep > 0 ? `市場定價 9 月 FOMC 降息 ${cutsSep} 碼（${cutsSep * 25}bp），隱含利率 ${impliedSep.toFixed(2)}%` :
+                   cutsSep < 0 ? `市場定價 9 月 FOMC 升息 ${-cutsSep} 碼，隱含利率 ${impliedSep.toFixed(2)}%` :
+                                 `市場定價 9 月 FOMC 維持不變，隱含利率 ${impliedSep.toFixed(2)}%`);
+    }
+    if (impliedDec !== null && currentRate) {
+      const diffDec = impliedDec - currentRate;
+      const cutsDec = Math.round(-diffDec / 0.25);
+      bullets.push(cutsDec > 0 ? `年底（12 月）累計定價降息 ${cutsDec} 碼，聯準會鴿派預期明確` :
+                   cutsDec < 0 ? `年底（12 月）定價仍有升息空間，貨幣政策偏鷹` :
+                                 `年底利率定價與現況持平，市場預期 Fed 按兵不動`);
+    }
+    if (impliedSep && impliedDec && cpiYoY) {
+      if (cpiYoY.yoy > 3 && impliedDec < currentRate) bullets.push('通膨仍高但市場仍定價降息，需關注 Fed 是否配合或反向修正預期');
+      else if (cpiYoY.yoy < 2.5 && impliedDec < currentRate) bullets.push('通膨受控 + 市場定價降息，降息條件趨於成熟，有利債市與成長股');
+    }
+    const decCuts = impliedDec !== null && currentRate ? Math.round(-(impliedDec - currentRate) / 0.25) : 0;
+    const col = decCuts > 0 ? '#3dd68c' : decCuts < 0 ? '#f56565' : '#f59e0b';
+    items.push({ label: 'FOMC 定價', value: decCuts > 0 ? `年底降 ${decCuts} 碼` : decCuts < 0 ? `升 ${-decCuts} 碼` : '不變', bullets, valColor: col });
+  }
+
   // S&P 500 財報季（FactSet）
   if (factset && !factset.error) {
     const m = factset.metrics;
@@ -4814,6 +4889,47 @@ function renderMacroAnalysis({ vix, spy, qqq, dxy, usdtwd, gold, oil, tnx, irx, 
     summaryEl.style.display = 'block';
   }
 }
+
+function renderCreditSpreads(hy, ig) {
+  const hyEl  = document.getElementById('m-hy-spread');
+  const hySub = document.getElementById('m-hy-spread-sub');
+  const igEl  = document.getElementById('m-ig-spread');
+  const igSub = document.getElementById('m-ig-spread-sub');
+  const interp = document.getElementById('m-spread-interp');
+
+  if (hy) {
+    const v = hy.value;
+    const col = v < 3 ? '#3dd68c' : v < 5 ? '#f59e0b' : v < 8 ? '#f56565' : '#b91c1c';
+    hyEl.textContent = v.toFixed(2) + '%';
+    hyEl.style.color = col;
+    const chg = hy.prev !== null ? v - hy.prev : null;
+    hySub.textContent = hy.date + (chg !== null ? `　${chg >= 0 ? '+' : ''}${chg.toFixed(2)}%` : '');
+    hySub.style.color = '#7a8499';
+  } else { hyEl.textContent = '—'; hySub.textContent = '取得失敗'; }
+
+  if (ig) {
+    const v = ig.value;
+    const col = v < 1.5 ? '#3dd68c' : v < 3 ? '#f59e0b' : '#f56565';
+    igEl.textContent = v.toFixed(2) + '%';
+    igEl.style.color = col;
+    const chg = ig.prev !== null ? v - ig.prev : null;
+    igSub.textContent = ig.date + (chg !== null ? `　${chg >= 0 ? '+' : ''}${chg.toFixed(2)}%` : '');
+    igSub.style.color = '#7a8499';
+  } else { igEl.textContent = '—'; igSub.textContent = '取得失敗'; }
+
+  if (interp && hy) {
+    const v = hy.value;
+    const lines = [];
+    if (v < 3)      lines.push('HY 利差偏窄，信用市場樂觀，風險偏好資產受益');
+    else if (v < 4) lines.push('HY 利差正常，市場對企業違約風險評估溫和');
+    else if (v < 6) lines.push('HY 利差走闊，市場開始對信用風險定價，需留意');
+    else            lines.push('HY 利差顯著擴大，信用緊縮風險升溫，類衰退訊號');
+    if (ig && ig.value > 1.5) lines.push('IG 利差同步走闊，非僅垃圾債，整體信用市場趨謹慎');
+    if (v >= 8) lines.push('HY 利差達危機水位（>8%），類 2008/2020 金融壓力環境，需大幅降低槓桿');
+    interp.innerHTML = lines.map(l => `<div>• ${l}</div>`).join('');
+  }
+}
+
 
 async function fetchFactSet() {
   try {
