@@ -1,0 +1,65 @@
+name: Fetch FRED Data
+
+on:
+  schedule:
+    - cron: '0 1 * * *'   # 每天 UTC 01:00（台灣時間 09:00）
+  workflow_dispatch:        # 允許手動觸發
+
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Fetch FRED series and save JSON
+        env:
+          FRED_KEY: ${{ secrets.FRED_KEY }}
+        run: |
+          python3 - <<'EOF'
+          import urllib.request, json, os
+
+          KEY = os.environ['FRED_KEY']
+          BASE = 'https://api.stlouisfed.org/fred/series/observations'
+
+          def fetch(series, limit=2):
+              url = f'{BASE}?series_id={series}&api_key={KEY}&sort_order=desc&limit={limit}&file_type=json'
+              try:
+                  with urllib.request.urlopen(url, timeout=15) as r:
+                      return json.loads(r.read())
+              except Exception as e:
+                  print(f'[FRED] failed {series}: {e}')
+                  return None
+
+          result = {}
+          series_list = [
+              ('FEDFUNDS',    2),
+              ('DFEDTARU',    2),
+              ('DFEDTARL',    2),
+              ('CPIAUCSL',   14),
+              ('PCEPI',      14),
+              ('UNRATE',      2),
+              ('BAMLH0A0HYM2', 2),
+              ('BAMLC0A0CM',   2),
+          ]
+
+          for series, limit in series_list:
+              data = fetch(series, limit)
+              if data and 'observations' in data:
+                  obs = [o for o in data['observations'] if o['value'] != '.']
+                  result[series] = obs
+                  print(f'[FRED] ok {series}: {obs[0]["date"]} {obs[0]["value"]}')
+              else:
+                  result[series] = []
+
+          with open('fred_data.json', 'w') as f:
+              json.dump(result, f)
+          print('Saved fred_data.json')
+          EOF
+
+      - name: Commit fred_data.json
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add fred_data.json
+          git diff --cached --quiet || git commit -m "chore: update FRED data $(date -u '+%Y-%m-%d')"
+          git push

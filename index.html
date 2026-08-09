@@ -4464,7 +4464,18 @@ const FRED_KEY = '10b4c30bbf29d1ba7a1b29d797ffecea';
 const PROXY = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
   ? 'http://localhost:3100'
   : 'https://asset-proxy.onrender.com';
+const FRED_JSON_URL = 'https://raw.githubusercontent.com/Markk1219/asset-dashboard/main/fred_data.json';
+let fredJsonCache = null;
 let macroInitialized = false;
+
+async function getFredJson() {
+  if (fredJsonCache) return fredJsonCache;
+  try {
+    const r = await fetch(FRED_JSON_URL + '?t=' + Date.now());
+    fredJsonCache = await r.json();
+    return fredJsonCache;
+  } catch { return null; }
+}
 
 async function fetchYF(symbol) {
   try {
@@ -4481,10 +4492,17 @@ async function fetchYF(symbol) {
 
 async function fetchFRED(series) {
   try {
-    const url = `${PROXY}/fred?series_id=${series}&api_key=${FRED_KEY}&sort_order=desc&limit=2&file_type=json`;
-    const r = await fetch(url);
-    const j = await r.json();
-    const obs = j?.observations?.filter(o => o.value !== '.');
+    const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+    let obs;
+    if (isLocal) {
+      const url = `${PROXY}/fred?series_id=${series}&api_key=${FRED_KEY}&sort_order=desc&limit=2&file_type=json`;
+      const r = await fetch(url);
+      const j = await r.json();
+      obs = j?.observations?.filter(o => o.value !== '.');
+    } else {
+      const json = await getFredJson();
+      obs = (json?.[series] || []).filter(o => o.value !== '.');
+    }
     if (!obs?.length) return null;
     return { value: parseFloat(obs[0].value), date: obs[0].date, prev: obs[1] ? parseFloat(obs[1].value) : null };
   } catch { return null; }
@@ -4646,10 +4664,18 @@ async function loadMacroData() {
 
 async function fetchFREDYoY(series) {
   try {
-    const url = `${PROXY}/fred?series_id=${series}&api_key=${FRED_KEY}&sort_order=desc&limit=14&file_type=json`;
-    const r = await fetch(url);
-    const j = await r.json();
-    const obs = j?.observations?.filter(o => o.value !== '.').map(o => ({ date: o.date, value: parseFloat(o.value) }));
+    const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+    let rawObs;
+    if (isLocal) {
+      const url = `${PROXY}/fred?series_id=${series}&api_key=${FRED_KEY}&sort_order=desc&limit=14&file_type=json`;
+      const r = await fetch(url);
+      const j = await r.json();
+      rawObs = j?.observations;
+    } else {
+      const json = await getFredJson();
+      rawObs = json?.[series] || [];
+    }
+    const obs = (rawObs || []).filter(o => o.value !== '.').map(o => ({ date: o.date, value: parseFloat(o.value) }));
     if (!obs || obs.length < 13) return null;
     const latest = obs[0], prev = obs[1], yearAgo = obs[12], yearAgoPrev = obs[13] ?? obs[12];
     const yoy = (latest.value - yearAgo.value) / yearAgo.value * 100;
