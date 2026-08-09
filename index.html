@@ -4481,7 +4481,7 @@ async function fetchYF(symbol) {
 
 async function fetchFRED(series) {
   try {
-    const url = `${PROXY}/fred?series_id=${series}&api_key=${FRED_KEY}&sort_order=desc&limit=2&file_type=json`;
+    const url = `https://api.stlouisfed.org/fred/series/observations?series_id=${series}&api_key=${FRED_KEY}&sort_order=desc&limit=2&file_type=json`;
     const r = await fetch(url);
     const j = await r.json();
     const obs = j?.observations?.filter(o => o.value !== '.');
@@ -4646,7 +4646,7 @@ async function loadMacroData() {
 
 async function fetchFREDYoY(series) {
   try {
-    const url = `${PROXY}/fred?series_id=${series}&api_key=${FRED_KEY}&sort_order=desc&limit=14&file_type=json`;
+    const url = `https://api.stlouisfed.org/fred/series/observations?series_id=${series}&api_key=${FRED_KEY}&sort_order=desc&limit=14&file_type=json`;
     const r = await fetch(url);
     const j = await r.json();
     const obs = j?.observations?.filter(o => o.value !== '.').map(o => ({ date: o.date, value: parseFloat(o.value) }));
