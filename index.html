@@ -4461,7 +4461,9 @@ if (_urlSheetId) localStorage.setItem(SHEET_ID_KEY, _urlSheetId);
 <script>
 // ── 總經監控 ──────────────────────────────────────────────────────
 const FRED_KEY = '10b4c30bbf29d1ba7a1b29d797ffecea';
-const PROXY = 'http://localhost:3100';
+const PROXY = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
+  ? 'http://localhost:3100'
+  : 'https://asset-proxy.onrender.com';
 let macroInitialized = false;
 
 async function fetchYF(symbol) {
